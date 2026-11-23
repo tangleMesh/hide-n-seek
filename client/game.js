@@ -167,7 +167,11 @@ export class GameView {
       this.seenRipples.add(r.id);
       const dx = r.x - s.you.x, dy = r.y - s.you.y;
       const d = Math.hypot(dx, dy);
-      if (d < 22) sfx.ripple(dx / 12, Math.max(0, 1 - d / 22), r.kind);
+      const now = performance.now();
+      if (d < 16 && (r.kind !== 'step' || now - (this.lastRippleSound || 0) > 350)) {
+        this.lastRippleSound = now;
+        sfx.ripple(dx / 10, Math.max(0, 1 - d / 16), r.kind);
+      }
     }
     if (this.seenRipples.size > 500) this.seenRipples = new Set(s.ripples.map((r) => r.id));
     if (s.you.role === 'hider' && s.phase !== 'ended') {
@@ -212,6 +216,7 @@ export class GameView {
     if (you.calmLeft > 0) eff.push(`💤 ${Math.ceil(you.calmLeft)}s`);
     if (you.wideLeft > 0) eff.push(`🔦 ${Math.ceil(you.wideLeft)}s`);
     if (you.slowLeft > 0) eff.push(`<span class="warn">slowed</span>`);
+    if (you.stamina < 10 && this.keys.has('shift')) eff.push(`<span class="warn">too tired to sneak</span>`);
     if (you.role === 'hider' && you.heartbeatIn !== null && you.heartbeatIn < 8) eff.push(`<span class="warn">♥ pulses in ${Math.ceil(you.heartbeatIn)}s, move!</span>`);
     $('hud-effects').innerHTML = eff.map((e) => (e.startsWith('<') ? e : `<span>${e}</span>`)).join('');
     $('hud-heart').classList.toggle('off', you.role !== 'hider');

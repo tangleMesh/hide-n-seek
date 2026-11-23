@@ -22,7 +22,7 @@ Open the page in a few browser tabs, or click **Play ranked**. If not enough peo
 |---|---|
 | **Setup** | 1 starting seeker (2 with 12 or more players). Hiders get a 30 s head start while seekers are blind. |
 | **Round** | 5:00. Caught hiders become seekers ("Shades"). Seekers win if everyone is caught. Hiders win if anyone survives. |
-| **Movement** | `WASD` move · `Shift` sneak (55 % speed, silent on quiet floors) · `Space` sprint (150 %, loud, uses stamina) |
+| **Movement** | `WASD` move · `Shift` sneak (55 % speed, silent on quiet floors) · `Space` sprint (150 %, loud). Both use **stamina**: sprint drains it fast, sneaking slowly (~10 s of continuous sneaking). Walking and standing regenerate it, so nobody can creep forever. |
 | **Noise** | Steps create **ripples** that only the other side sees. Gravel and water are loud, carpet and grass quiet, doors creak, bushes rustle. |
 | **Vision** | Seekers: 70° flashlight cone. Hiders: small circle of vision. Walls, bushes and smoke block sight. **Lamps** expose anyone standing in them. |
 | **Heartbeat** | If you stand within 2 tiles of the same spot for 20 s, your heartbeat pulses every 5 s. During the last 60 s (**Final Hush**), every hider pulses every 10 s. |

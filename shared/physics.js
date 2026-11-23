@@ -16,8 +16,12 @@ export function stepMovement(map, p, input, dt) {
   if (mode === 'sprint') {
     if (p.stamina <= 0 || (p.stamina < STAMINA.minToSprint && p.lastMode !== 'sprint')) mode = 'walk';
   }
+  if (mode === 'sneak') {
+    if (p.stamina <= 0 || (p.stamina < STAMINA.minToSneak && p.lastMode !== 'sneak')) mode = 'walk';
+  }
   if (mode === 'sprint') p.stamina = Math.max(0, p.stamina - STAMINA.drain * dt);
-  else p.stamina = Math.min(STAMINA.max, p.stamina + STAMINA.regen * dt * (mode === 'sneak' ? 1 : 0.6));
+  else if (mode === 'sneak') p.stamina = Math.max(0, p.stamina - STAMINA.sneakDrain * dt);
+  else p.stamina = Math.min(STAMINA.max, p.stamina + STAMINA.walkRegen * dt);
   const floor = map.tileAtPos(p.x, p.y);
   let speed = SPEED[mode] * (floor.speed || 1);
   if (p.slowLeft > 0) speed *= 0.5;

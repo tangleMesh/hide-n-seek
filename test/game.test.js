@@ -144,3 +144,17 @@ test('serialize → fromSnapshot continues identically (deterministic)', () => {
   for (let i = 200; i < 500; i++) { drive(g1, i); g1.step(); drive(g2, i); g2.step(); }
   assert.deepEqual(g2.serialize(), g1.serialize());
 });
+
+test('sneaking drains stamina: nobody can creep forever', () => {
+  const g = newGame({ roundSeconds: 200 });
+  run(g, 1.1);
+  g.setInput('h1', { dx: 0.3, dy: 0, mode: 'sneak' });
+  let walked = false;
+  for (let i = 0; i < 20 * 20; i++) {
+    g.step();
+    if (g.state.players.h1.mode === 'walk') walked = true;
+    if (g.state.players.h1.x > 7.5) g.setInput('h1', { dx: -0.3, dy: 0, mode: 'sneak' });
+    if (g.state.players.h1.x < 2.5) g.setInput('h1', { dx: 0.3, dy: 0, mode: 'sneak' });
+  }
+  assert.ok(walked, 'after the stamina runs out the player is forced to walk');
+});

@@ -32,7 +32,7 @@ export class Renderer {
     this.canvas.height = Math.round(h * dpr);
     this.fog.width = this.canvas.width;
     this.fog.height = this.canvas.height;
-    this.px = Math.max(22, Math.min(46, Math.min(w / 26, h / 17))) * dpr;
+    this.px = Math.max(30, Math.min(64, Math.min(w / 19, h / 12))) * dpr;
     this.buildMapLayer();
   }
 

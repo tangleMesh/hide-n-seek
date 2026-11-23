@@ -12,12 +12,13 @@ export const PLAYER_RADIUS = 0.35;
 export const CATCH_DISTANCE = 0.85;
 
 export const SPEED = { sneak: 1.75, walk: 3.2, sprint: 4.8 };
-export const STAMINA = { max: 100, drain: 28, regen: 14, minToSprint: 15 };
+// Sprinting drains stamina fast, sneaking drains it slowly (so nobody can creep forever); walking/standing regenerate.
+export const STAMINA = { max: 100, drain: 28, sneakDrain: 9, regen: 14, walkRegen: 7, minToSprint: 15, minToSneak: 10 };
 
 // Noise loudness (ripple radius in tiles) per movement mode, before floor modifiers.
-export const NOISE_BASE = { sneak: 0, walk: 2.4, sprint: 6 };
-export const NOISE_INTERVAL = 0.6; // a moving player emits at most one ripple per interval
-export const NOISE_MIN = 1.2; // ripples smaller than this are not emitted
+export const NOISE_BASE = { sneak: 0, walk: 1.9, sprint: 5.5 };
+export const NOISE_INTERVAL = 0.9; // a moving player emits at most one ripple per interval
+export const NOISE_MIN = 1.4; // ripples smaller than this are not emitted
 export const RIPPLE_TTL = 1.4;
 
 export const HEARTBEAT = {

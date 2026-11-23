@@ -25,10 +25,10 @@ function tone({ freq = 440, dur = 0.12, type = 'sine', gain = 0.15, pan = 0, sli
 export const sfx = {
   unlock: () => { try { ac(); } catch {} },
   heartbeat: (level) => {
-    tone({ freq: 60, dur: 0.12, type: 'sine', gain: 0.25 + level * 0.3 });
-    setTimeout(() => tone({ freq: 52, dur: 0.14, type: 'sine', gain: 0.18 + level * 0.25 }), 150);
+    tone({ freq: 60, dur: 0.12, type: 'sine', gain: 0.12 + level * 0.25 });
+    setTimeout(() => tone({ freq: 52, dur: 0.14, type: 'sine', gain: 0.08 + level * 0.2 }), 150);
   },
-  ripple: (pan, vol, kind) => tone({ freq: kind === 'heart' ? 90 : kind === 'door' ? 220 : 160 + Math.random() * 40, dur: 0.08, type: kind === 'door' ? 'sawtooth' : 'triangle', gain: 0.02 + vol * 0.09, pan, slide: kind === 'door' ? -80 : 0 }),
+  ripple: (pan, vol, kind) => tone({ freq: kind === 'heart' ? 90 : kind === 'door' ? 220 : 160 + Math.random() * 40, dur: 0.08, type: kind === 'door' ? 'sawtooth' : 'triangle', gain: 0.01 + vol * 0.05, pan, slide: kind === 'door' ? -80 : 0 }),
   caught: () => { tone({ freq: 520, dur: 0.15, type: 'square', gain: 0.06 }); setTimeout(() => tone({ freq: 330, dur: 0.25, type: 'square', gain: 0.06 }), 140); },
   pickup: () => tone({ freq: 880, dur: 0.12, type: 'sine', gain: 0.08, slide: 400 }),
   use: () => tone({ freq: 300, dur: 0.15, type: 'triangle', gain: 0.08, slide: 300 }),

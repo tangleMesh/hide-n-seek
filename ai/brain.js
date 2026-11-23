@@ -125,6 +125,10 @@ export function modePrior(ctx) {
     l[0] = 0.6 + t.patience - tilt;
     l[2] = sprintHabit - 1.2;
   }
+  if (me.stamina < 12) {
+    l[0] -= 3;
+    l[2] -= 3;
+  } else if (role === 'hider' && me.stamina < 35 && !danger && nearestEnemy >= 10) l[0] -= 1.5; // save stamina for when it matters
   return l;
 }
 
