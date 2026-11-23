@@ -1,0 +1,4 @@
+node_modules/
+.sim-memory.json
+*.memory.json
+.env

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HUSH Admin</title>
+<style>
+  :root { --bg:#0e1116; --panel:#171b22; --ink:#e7eaf0; --mute:#8a93a3; --line:#2a303b; --accent:#7cc4ff; --good:#69db7c; --warn:#ffd43b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui, sans-serif; }
+  header { padding:16px 20px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  h1 { font-size:18px; margin:0; letter-spacing:.08em; }
+  .mute { color:var(--mute); }
+  main { padding:16px; display:grid; gap:14px; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; min-width:0; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--mute); margin:0 0 10px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; }
+  .kpi b { display:block; font-size:22px; font-variant-numeric:tabular-nums; }
+  canvas { width:100%; height:180px; display:block; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  td, th { padding:4px 6px; border-bottom:1px solid var(--line); text-align:right; }
+  td:first-child, th:first-child { text-align:left; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; background:#223; }
+  .running { background:#1f3b26; color:var(--good); } .paused { background:#3b3517; color:var(--warn); }
+</style>
+</head>
+<body>
+<header><h1>HUSH · TRAINING</h1><span id="state" class="pill">…</span><span class="mute" id="updated"></span></header>
+<main>
+  <section class="card" style="grid-column:1/-1"><h2>Overview</h2><div class="kpis" id="kpis"></div></section>
+  <section class="card"><h2>ES fitness per generation</h2><canvas id="fit"></canvas><div class="mute">mean (line) and min–max band of perturbation fitness (hider + seeker score vs champion)</div></section>
+  <section class="card"><h2>League ratings of checkpoints</h2><canvas id="league"></canvas><div class="mute">● = champion</div></section>
+  <section class="card"><h2>Imitation loss</h2><canvas id="imit"></canvas></section>
+  <section class="card"><h2>Simulated games per hour</h2><canvas id="hourly"></canvas></section>
+  <section class="card"><h2>Persona ratings</h2><canvas id="hist"></canvas></section>
+  <section class="card"><h2>Win rate by rating band (matches with personas)</h2><table id="bands"></table></section>
+</main>
+<script>
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function chart(id, series, { band = null, dots = null, bars = false } = {}) {
+  const c = document.getElementById(id), dpr = devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight; c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+  const all = [...series, ...(band ? band.flat() : [])].filter(Number.isFinite);
+  if (!all.length) { g.fillStyle = css('--mute'); g.fillText('no data yet', 10, 20); return; }
+  let lo = Math.min(...all), hi = Math.max(...all); if (bars) lo = 0; if (hi - lo < 1e-9) { hi += 1; lo -= bars ? 0 : 1; }
+  const pad = 28, X = (i) => pad + (i / Math.max(1, series.length - 1)) * (w - pad - 8), Y = (v) => h - 18 - ((v - lo) / (hi - lo)) * (h - 30);
+  g.strokeStyle = css('--line'); g.fillStyle = css('--mute'); g.font = '11px system-ui';
+  for (const v of [lo, (lo + hi) / 2, hi]) { g.beginPath(); g.moveTo(pad, Y(v)); g.lineTo(w, Y(v)); g.stroke(); g.fillText(+v.toFixed(2), 0, Y(v) + 4); }
+  if (bars) { const bw = (w - pad - 8) / series.length; g.fillStyle = css('--accent'); series.forEach((v, i) => g.fillRect(pad + i * bw + 1, Y(v), bw - 2, Y(lo) - Y(v))); return; }
+  if (band) { g.fillStyle = 'rgba(124,196,255,.18)'; g.beginPath(); band.forEach(([a], i) => g.lineTo(X(i), Y(a))); [...band].reverse().forEach(([, b], j) => g.lineTo(X(band.length - 1 - j), Y(b))); g.fill(); }
+  g.strokeStyle = css('--accent'); g.lineWidth = 2; g.beginPath(); series.forEach((v, i) => (i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)))); g.stroke();
+  if (dots) dots.forEach((d, i) => { if (d) { g.fillStyle = css('--good'); g.beginPath(); g.arc(X(i), Y(series[i]), 4, 0, 7); g.fill(); } });
+}
+async function refresh() {
+  const r = await fetch('/api/admin/stats', { credentials: 'same-origin' });
+  if (!r.ok) { document.body.textContent = 'Not found'; return; }
+  const s = await r.json();
+  const st = document.getElementById('state'); st.textContent = s.training.state; st.className = 'pill ' + s.training.state;
+  document.getElementById('updated').textContent = 'updated ' + new Date(s.now).toLocaleTimeString();
+  const k = [
+    ['Generation', s.training.generation], ['Games simulated', s.training.gamesSimulated],
+    ['Idle time used', Math.round((s.training.idleUse || 0) * 100) + '%'], ['Checkpoints', s.league.length],
+    ['Promotions', s.promotions], ['Human samples', s.samples], ['Personas', s.personas.count],
+    ['Personas online', s.personas.online], ['Humans', s.humans], ['Ranked matches', s.matches.ranked],
+    ['Filled w/ personas', s.matches.filledWithPersonas], ['Fresh persona fills', `${s.personas.fills.fresh}/${s.personas.fills.fills}`],
+  ];
+  document.getElementById('kpis').innerHTML = k.map(([a, b]) => `<div class="kpi"><span class="mute">${a}</span><b>${b}</b></div>`).join('');
+  chart('fit', s.generations.map((g) => g.mean), { band: s.generations.map((g) => [g.min, g.max]) });
+  chart('league', s.league.map((l) => l.leagueRating), { dots: s.league.map((l) => l.champion) });
+  chart('imit', s.imitation.map((g) => g.loss));
+  chart('hourly', s.training.hourly.map((h) => h.games), { bars: true });
+  const hk = Object.keys(s.personas.ratingHistogram).map(Number).sort((a, b) => a - b);
+  chart('hist', hk.map((b) => s.personas.ratingHistogram[b]), { bars: true });
+  const rows = Object.entries(s.winRatesByBand).sort((a, b) => a[0] - b[0]).map(([b, v]) => {
+    const pct = (x) => (x.games ? Math.round((x.wins / x.games) * 100) + '%' : '–');
+    return `<tr><td>${b}–${+b + 199}</td><td>${pct(v.human)} <span class="mute">(${v.human.games})</span></td><td>${pct(v.persona)} <span class="mute">(${v.persona.games})</span></td></tr>`;
+  });
+  document.getElementById('bands').innerHTML = '<tr><th>Rating</th><th>Humans</th><th>Personas</th></tr>' + (rows.join('') || '<tr><td colspan=3 class="mute">no matches yet</td></tr>');
+}
+refresh(); setInterval(refresh, 10000);
+</script>
+</body>
+</html>

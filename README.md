@@ -1,0 +1,110 @@
+# HUSH: hide in the dark, every step makes noise
+
+A browser hide'n'seek party game for **6–16 players**. It uses a Node.js + WebSocket backend, a Canvas 2D client and MongoDB.
+
+> Seekers can only see what their flashlight shows. Hiders are invisible in the dark, but every move makes noise, and noise shows up for the seekers.
+
+## Quick start
+
+```bash
+npm install
+docker compose up -d mongo                 # MongoDB 8 on :27017
+ADMIN_USERS=yourname npm start             # http://localhost:3000
+```
+
+If you don't have MongoDB, `npm run dev` uses the in-memory driver (set `MEMORY_FILE=dev.memory.json` to keep data between restarts).
+
+Open the page in a few browser tabs, or click **Play ranked**. If not enough people are online, the matchmaker fills the match.
+
+## Rules
+
+| | |
+|---|---|
+| **Setup** | 1 starting seeker (2 with 12 or more players). Hiders get a 30 s head start while seekers are blind. |
+| **Round** | 5:00. Caught hiders become seekers ("Shades"). Seekers win if everyone is caught. Hiders win if anyone survives. |
+| **Movement** | `WASD` move · `Shift` sneak (55 % speed, silent on quiet floors) · `Space` sprint (150 %, loud, uses stamina) |
+| **Noise** | Steps create **ripples** that only the other side sees. Gravel and water are loud, carpet and grass quiet, doors creak, bushes rustle. |
+| **Vision** | Seekers: 70° flashlight cone. Hiders: small circle of vision. Walls, bushes and smoke block sight. **Lamps** expose anyone standing in them. |
+| **Heartbeat** | If you stand within 2 tiles of the same spot for 20 s, your heartbeat pulses every 5 s. During the last 60 s (**Final Hush**), every hider pulses every 10 s. |
+| **Items** | Fixed pads with fixed, visible respawn timers, so there's no luck involved. `E` or click to use. |
+| **Seekers' team** | Right-click places a marker that only seekers can see. |
+
+**Hider items:** 👣 Decoy (fake ripples) · 💨 Smoke (blocks flashlights) · 🥿 Soft shoes (silent sprint) · 💤 Calm (hides your heartbeat)
+**Seeker items:** 🔥 Flare (lights an area) · 🪤 Noise trap (hidden mine) · 🔦 Wide beam (140° cone) · 📡 Echo (reveals nearby heartbeats)
+
+Quick-chat: keys `1`–`8` in game, or the buttons in the lobby. `Tab` shows the scoreboard. `Esc` opens the menu (leave, or pause in custom games).
+
+## Ranked & ELO
+
+- Everyone starts at 1000. K = 40 for the first 10 games, 24 after that. Your opponent strength is the average rating of the side you started against.
+- Starting seekers score the share of hiders caught. Hiders score 1 if they survive. If caught, they score `0.4 × survived time` plus a bonus per catch as a Shade, capped at 0.6.
+- Leaving a ranked match gives you the worst score for it. After 3 leaves in 24 h you get a 10-minute queue cooldown.
+
+## Connection & persistence
+
+- **Disconnects:** you have a 60 s grace window, and the AI holds your avatar until you return. The client reconnects automatically.
+- **Crash safety:** every game is snapshotted every 2 s and on key events. After a restart:
+  - ranked games resume if the snapshot is less than 2 min old, otherwise they're voided
+  - custom games turn into saved games
+- **Save & resume (custom only):** the host pauses, and a majority vote saves the game. It can be resumed later from *Saved games*, but only once all original human players are back (the host can choose AI stand-ins for missing players). Ranked games can't be paused.
+- **Invites:** share the room code or `/?join=CODE` link, or invite online players by name.
+
+## AI players ("personas")
+
+To keep lobbies full at every rating, the server runs **personas**. These are AI-driven player accounts with their own names, personalities (tactic, aggression, patience, tilt, chattiness), ratings, history and leaderboard spots. Clients receive exactly the same data for personas as for humans.
+
+- **Fairness:** bots get the same filtered view a human client gets (`server/observe.js`), so they never see through walls.
+- **Brain:** a heuristic prior plus a small learned residual MLP, trained by
+  1. **imitation** of human players (samples recorded at 2 Hz in real games)
+  2. **evolution strategies** in headless self-play
+  3. a **league** of checkpoints with internal ratings, mapped to persona ratings (lower-rated personas get earlier brains, more mistakes and slower reactions)
+- **Idle training:** when no human game is running, a worker thread plays learning games one after another. It pauses within one tick as soon as people play.
+- **Admin dashboard:** `/admin` (also `/api/admin/stats`), only for accounts listed in `ADMIN_USERS`. Everyone else gets a 404. It shows training progress, fitness, league ratings, imitation loss, idle-time use, persona population and win rates per rating band.
+- **Manual training:** `npm run train -- --generations 10 --games 3`
+
+## Architecture
+
+```
+shared/        constants, map model (collision, LOS, visibility polygons), movement physics; used by server, bots and client
+server/
+  game.js      pure deterministic simulation (serializable state → snapshots, save/resume)
+  observe.js   per-player filtered view (anti wall-hack; also the bots' only input)
+  session.js   real-time loop, reconnect grace + AI takeover, snapshots, pause/save, ELO
+  hub.js       presence, message routing, crash recovery
+  lobby.js     custom lobbies, invites, host migration, "find players"
+  matchmaker.js ranked queue with widening rating window + persona fill
+  data/        repository layer over a swappable DocumentStore (mongo/ or memory/)
+ai/            features, brain, bot controller, personas, training (ES, imitation, league), idle scheduler
+admin/         owner-only stats dashboard
+client/        vanilla ES modules + Canvas 2D (fog of war, prediction/reconciliation, WebAudio cues)
+maps/          tile maps (generated by scripts/buildMap.js)
+```
+
+### Replacing the database
+
+Game code only uses the repositories in `server/data/index.js`. These sit on a small **DocumentStore** contract: `collection(name)` with `insertOne/insertMany/findOne/find/count/updateOne/updateMany/bulkUpdate/deleteOne/deleteMany/ensureIndex`, using a Mongo-style filter/update subset (see `server/data/memory/query.js`).
+
+To add another document database, implement that contract in `server/data/<driver>/store.js` and register it in `createStore()`. The repository contract tests in `test/data.test.js` run against every adapter.
+
+## Configuration
+
+| Env | Default | |
+|---|---|---|
+| `PORT` / `HOST` | `3000` / `0.0.0.0` | |
+| `DB_DRIVER` | `mongo` | `mongo` or `memory` |
+| `MONGO_URL` / `MONGO_DB` | `mongodb://127.0.0.1:27017` / `hush` | |
+| `MEMORY_FILE` | – | JSON persistence for the memory driver |
+| `ADMIN_USERS` | – | comma-separated account names allowed to see `/admin` |
+| `TRAINING` | on | `off` disables idle-time training |
+| `MIN_PERSONAS` | `24` | starting persona population |
+| `RECORD_SAMPLES` | on | `off` stops recording imitation samples from human games |
+| `ROUND_SECONDS`, `HEADSTART_SECONDS`, `MM_FILL_AFTER=lo,hi` | – | testing overrides |
+
+## Tests
+
+```bash
+npm test                 # unit tests (repository contract runs on memory + MongoDB if reachable)
+npm run simulate         # end-to-end: ranked + persona fill, disconnect/reconnect, crash/restart recovery,
+                         # custom save/resume, no persona markers in client traffic
+DB_DRIVER=memory npm run simulate
+```

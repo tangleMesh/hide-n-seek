@@ -1,0 +1,27 @@
+{
+  "name": "hush",
+  "version": "0.1.0",
+  "description": "HUSH - a Noise & Shadow hide'n'seek party game for 6-16 players (Node + WebSockets + Canvas)",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "DB_DRIVER=memory ADMIN_USERS=admin node --watch server/index.js",
+    "db": "docker compose up -d mongo",
+    "map": "node scripts/buildMap.js",
+    "test": "node --test test/*.test.js",
+    "train": "node ai/train/cli.js",
+    "simulate": "node scripts/simulate.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tangleMesh/hide-n-seek.git"
+  },
+  "dependencies": {
+    "mongodb": "^7.9.1",
+    "ws": "^8.23.0"
+  }
+}

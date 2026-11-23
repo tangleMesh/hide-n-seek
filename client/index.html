@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HUSH</title>
+<meta name="description" content="Hide in the dark. Every step makes noise." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤫</text></svg>" />
+<link rel="stylesheet" href="/client/style.css" />
+</head>
+<body>
+<div id="app">
+  <!-- AUTH -->
+  <section id="screen-auth" class="screen center">
+    <div class="card auth">
+      <h1 class="logo">HUSH<span>.</span></h1>
+      <p class="tag">Hide in the dark. Every step makes noise.</p>
+      <div class="tabs"><button data-auth="login" class="active">Log in</button><button data-auth="register">Create account</button></div>
+      <form id="auth-form">
+        <input id="auth-name" placeholder="Name" autocomplete="username" maxlength="16" required />
+        <input id="auth-pass" type="password" placeholder="Password" autocomplete="current-password" required />
+        <button class="primary" type="submit" id="auth-submit">Log in</button>
+        <div class="error" id="auth-error"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- HOME -->
+  <section id="screen-home" class="screen">
+    <header class="topbar">
+      <div class="logo small">HUSH<span>.</span></div>
+      <div class="me"><span class="dot" id="me-dot"></span><b id="me-name"></b><span class="rating" id="me-rating"></span><button class="ghost" id="logout">Log out</button></div>
+    </header>
+    <div class="home-grid">
+      <div class="card play">
+        <h2>Play</h2>
+        <button class="primary big" id="btn-ranked">Play ranked</button>
+        <div id="queue-box" class="queue hidden"><div class="spinner"></div><div id="queue-text">Searching…</div><button class="ghost" id="btn-queue-cancel">Cancel</button></div>
+        <div class="row"><button id="btn-create">Create lobby</button></div>
+        <form class="row" id="join-form"><input id="join-code" placeholder="Lobby code" maxlength="4" /><button>Join</button></form>
+        <div id="saved-games"></div>
+      </div>
+      <div class="card how">
+        <h2>How to play</h2>
+        <ul class="rules">
+          <li><b>Hiders</b> are invisible in the dark. <b>Seekers</b> only see what their flashlight shows.</li>
+          <li>Every step makes <b>noise ripples</b> that the other side can see. <kbd>Shift</kbd> to sneak silently, <kbd>Space</kbd> to sprint (loud).</li>
+          <li>Gravel and water are loud, carpet and grass quiet. Doors creak. Bushes hide you.</li>
+          <li>Standing still for over 20s makes your <b>heartbeat</b> pulse. Keep moving.</li>
+          <li>Caught hiders become seekers. Seekers win if everyone is caught, hiders win if anyone survives the timer.</li>
+          <li>Item pads (<kbd>E</kbd>/click to use) respawn on fixed timers. Seekers: right-click to mark a spot for the team.</li>
+          <li>Last 60s: <b>Final Hush</b>. Every heartbeat pulses.</li>
+        </ul>
+      </div>
+      <div class="card board">
+        <h2>Leaderboard</h2>
+        <ol id="leaderboard" class="leaderboard"></ol>
+      </div>
+      <div class="card online">
+        <h2>Online</h2>
+        <ul id="online-list" class="online-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="screen-lobby" class="screen">
+    <header class="topbar">
+      <div class="logo small">HUSH<span>.</span></div>
+      <div class="lobby-code">Lobby <b id="lobby-code"></b><button class="ghost" id="copy-link">Copy invite link</button></div>
+      <button class="ghost" id="lobby-leave">Leave</button>
+    </header>
+    <div class="lobby-grid">
+      <div class="card">
+        <h2>Players <span class="mute" id="lobby-count"></span></h2>
+        <div id="saved-banner" class="banner hidden"></div>
+        <ul id="lobby-members" class="members"></ul>
+        <div class="row lobby-actions">
+          <button id="btn-ready">Ready</button>
+          <button id="btn-find" class="host-only">Find players</button>
+          <select id="round-len" class="host-only"><option value="120">2 min</option><option value="180">3 min</option><option value="300" selected>5 min</option><option value="420">7 min</option></select>
+          <button class="primary host-only" id="btn-start">Start game</button>
+        </div>
+        <div class="chat-bar" id="lobby-chat-bar"></div>
+        <ul class="chat-log" id="lobby-chat"></ul>
+      </div>
+      <div class="card">
+        <h2>Invite</h2>
+        <form class="row" id="invite-form"><input id="invite-name" placeholder="Player name" /><button>Invite</button></form>
+        <ul id="lobby-online" class="online-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="screen-game" class="screen game">
+    <canvas id="canvas"></canvas>
+    <div class="hud">
+      <div class="hud-top">
+        <div id="hud-role" class="role"></div>
+        <div id="hud-timer" class="timer">5:00</div>
+        <div id="hud-counts" class="counts"></div>
+      </div>
+      <div id="hud-center" class="hud-center"></div>
+      <div id="hud-feed" class="feed"></div>
+      <div class="hud-bottom">
+        <div class="item-slot" id="hud-item" title="E / click to use"></div>
+        <div class="bars">
+          <div class="stamina"><div id="hud-stamina"></div></div>
+          <div id="hud-effects" class="effects"></div>
+        </div>
+        <div class="heart" id="hud-heart">♥</div>
+      </div>
+      <div class="hud-chat" id="hud-chat"></div>
+      <div class="hint-keys">WASD move · Shift sneak · Space sprint · E use · Right-click mark · 1-8 chat · Tab scores · Esc menu</div>
+    </div>
+    <div id="scoreboard" class="overlay hidden"><div class="card"><h2>Players</h2><table id="score-table"></table></div></div>
+    <div id="menu" class="overlay hidden">
+      <div class="card menu">
+        <h2>Menu</h2>
+        <button id="menu-resume">Back to game</button>
+        <button id="menu-pause" class="custom-only host-only">Pause game</button>
+        <button id="menu-leave" class="danger">Leave game</button>
+        <p class="mute" id="menu-note"></p>
+      </div>
+    </div>
+    <div id="paused" class="overlay hidden">
+      <div class="card menu">
+        <h2>Game paused</h2>
+        <p class="mute">Save the game and continue later with the same players?</p>
+        <div id="save-votes" class="mute"></div>
+        <button id="vote-save" class="primary">Vote: save &amp; quit</button>
+        <button id="vote-continue">Vote: keep playing</button>
+        <button id="host-resume" class="host-only">Resume now</button>
+      </div>
+    </div>
+    <div id="results" class="overlay hidden"><div class="card results"><h2 id="results-title"></h2><table id="results-table"></table><div class="row"><button class="primary" id="results-again">Play again</button><button id="results-back">Back</button></div></div></div>
+  </section>
+
+  <div id="toasts"></div>
+  <div id="conn" class="conn hidden">Reconnecting…</div>
+</div>
+<script type="module" src="/client/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - hush-mongo-data:/data/db
+
+  hush:
+    build: .
+    restart: unless-stopped
+    depends_on: [mongo]
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      PORT: "3000"
+      ADMIN_USERS: ${ADMIN_USERS:-}
+    ports:
+      - "3000:3000"
+    profiles: [app]
+
+volumes:
+  hush-mongo-data:
