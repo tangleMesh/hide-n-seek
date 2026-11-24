@@ -30,7 +30,11 @@ export async function createServer(opts = {}) {
   const hub = new Hub({ repos, pool, personas, map, matchmakerOpts: opts.matchmaker ?? (fillEnv ? { fillAfter: fillEnv } : {}) });
   const recovery = await hub.recover();
   if (recovery.resumed || recovery.voided || recovery.saved) console.log('[recovery]', recovery);
-  const trainingEnabled = opts.training ?? process.env.TRAINING !== 'off';
+  // Idle-time training only runs in production (the Docker image sets NODE_ENV=production), so dev
+  // machines and the sbx container stay quiet. TRAINING=on|off overrides it either way.
+  const trainingEnv = process.env.TRAINING;
+  const trainingEnabled = opts.training ?? (trainingEnv === 'on' || (trainingEnv !== 'off' && process.env.NODE_ENV === 'production'));
+  console.log(`[train] idle-time training ${trainingEnabled ? 'on' : 'off'}`);
   const scheduler = new TrainingScheduler({ repos, pool, hub, enabled: trainingEnabled, opts: opts.trainingOpts });
   await scheduler.start();
 

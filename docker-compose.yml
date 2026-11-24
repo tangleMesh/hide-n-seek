@@ -25,7 +25,8 @@ services:
       MONGO_DB: hush
       PORT: "3000"
       ADMIN_USERS: ${ADMIN_USERS:-}
-      TRAINING: ${TRAINING:-on}
+      # the image is production, so switch training off explicitly for the dev stack
+      TRAINING: ${TRAINING:-off}
     ports:
       - "${HOST_PORT:-3000}:3000"
     depends_on:

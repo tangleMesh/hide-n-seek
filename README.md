@@ -58,7 +58,7 @@ To keep lobbies full at every rating, the server runs **personas**. These are AI
   1. **imitation** of human players (samples recorded at 2 Hz in real games)
   2. **evolution strategies** in headless self-play
   3. a **league** of checkpoints with internal ratings, mapped to persona ratings (lower-rated personas get earlier brains, more mistakes and slower reactions)
-- **Idle training:** when no human game is running, a worker thread plays learning games one after another. It pauses within one tick as soon as people play.
+- **Idle training (production only):** when no human game is running, a worker thread plays learning games one after another. It pauses within one tick as soon as people play.
 - **Admin dashboard:** `/admin` (also `/api/admin/stats`), only for accounts listed in `ADMIN_USERS`. Everyone else gets a 404. It shows training progress, fitness, league ratings, imitation loss, idle-time use, persona population and win rates per rating band.
 - **Manual training:** `npm run train -- --generations 10 --games 3`
 
@@ -99,7 +99,7 @@ To add another document database, implement that contract in `server/data/<drive
 | `MONGO_URL` / `MONGO_DB` | `mongodb://127.0.0.1:27017` / `hush` | |
 | `MEMORY_FILE` | – | JSON persistence for the memory driver |
 | `ADMIN_USERS` | – | comma-separated account names allowed to see `/admin` |
-| `TRAINING` | on | `off` disables idle-time training |
+| `TRAINING` | on in production (`NODE_ENV=production`, set by the Docker image), off otherwise | `on` / `off` forces idle-time training on or off |
 | `MIN_PERSONAS` | `24` | starting persona population |
 | `TRAINING_MAX_MB` | – | heap cap for the training worker (it restarts on its own) |
 | `RECORD_SAMPLES` | on | `off` stops recording imitation samples from human games |
