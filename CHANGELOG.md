@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4
 - **Ranked as a group:** create a lobby with up to 4 friends, everyone gets ready, and the host clicks *🏆 Ranked as group*. The group searches together, always lands in the same match, and returns to its lobby afterwards.
   - Groups are matched at a rating between their average and their best player, so a strong player can't pull friends into easy games.
   - Solo players start as seekers before group members, so nobody seeks their own friends and goes easy on them.
