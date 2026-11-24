@@ -2,6 +2,7 @@
 // and lobbies created from a saved game (resume only with the same human players).
 import { randomUUID, randomInt } from 'node:crypto';
 import { defaultFace } from '../shared/look.js';
+import { MAX_PARTY } from './matchmaker.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const MAX_PLAYERS = 16;
@@ -29,7 +30,7 @@ export class LobbyManager {
   create(hostId, { saved = null } = {}) {
     const lobby = {
       id: randomUUID(), code: this.newCode(), hostId, members: [], ready: new Set(), open: false,
-      saved, roundSeconds: 300, sessionId: null, fillTimer: null, createdAt: Date.now(),
+      saved, roundSeconds: 300, sessionId: null, fillTimer: null, createdAt: Date.now(), queued: false,
     };
     this.lobbies.set(lobby.id, lobby);
     this.byCode.set(lobby.code, lobby);
@@ -62,6 +63,7 @@ export class LobbyManager {
     const lobby = this.byCode.get(String(code || '').toUpperCase());
     if (!lobby) return { error: 'Lobby not found' };
     if (lobby.sessionId) return { error: 'That lobby is in a game right now' };
+    if (lobby.queued && !lobby.members.includes(userId)) return { error: 'That group is searching for a ranked match right now' };
     if (lobby.members.length >= MAX_PLAYERS && !lobby.members.includes(userId)) return { error: 'Lobby is full' };
     this.addMember(lobby, userId);
     return { lobby };
@@ -70,6 +72,7 @@ export class LobbyManager {
   leave(userId) {
     const lobbyId = this.hub.presence.get(userId)?.lobbyId;
     const lobby = lobbyId && this.lobbies.get(lobbyId);
+    if (lobby?.queued) this.hub.matchmaker.leave(userId); // the group's ranked search stops
     this.hub.presence.setLobby(userId, null);
     if (!lobby) return;
     lobby.members = lobby.members.filter((m) => m !== userId);
@@ -109,6 +112,7 @@ export class LobbyManager {
     if (!lobby) return;
     if (ready) lobby.ready.add(userId);
     else lobby.ready.delete(userId);
+    if (!ready && lobby.queued) return this.hub.matchmaker.leave(userId); // not ready any more: stop the search
     this.broadcast(lobby);
   }
 
@@ -120,9 +124,35 @@ export class LobbyManager {
   }
 
   // "Find players": fill the lobby with matchmaking-pool players (personas) one by one, with natural delays.
+  // Ranked as a group: the whole lobby (up to MAX_PARTY players, everyone ready) queues together and lands
+  // in the same match. Any member can stop the search; leaving, un-readying or a kick stops it too.
+  async queueRanked(userId, on) {
+    const lobby = this.lobbyOf(userId);
+    if (!lobby) return;
+    if (!on) return this.hub.matchmaker.leave(userId);
+    if (lobby.hostId !== userId) return { error: 'Only the host can start the search' };
+    if (lobby.sessionId || lobby.queued) return;
+    if (lobby.saved) return { error: 'Saved games can only be continued as a custom game' };
+    if (lobby.members.length > MAX_PARTY) return { error: `Ranked groups can have at most ${MAX_PARTY} players (you have ${lobby.members.length})` };
+    const notReady = lobby.members.filter((m) => m !== lobby.hostId && !lobby.ready.has(m));
+    if (notReady.length) return { error: 'Everyone has to be ready first' };
+    lobby.open = false;
+    clearTimeout(lobby.fillTimer);
+    const r = await this.hub.matchmaker.joinGroup(lobby.members, { lobbyId: lobby.id });
+    if (r.error) return r;
+    this.onQueueChange(lobby.id, true);
+  }
+
+  onQueueChange(lobbyId, queued) {
+    const lobby = this.lobbies.get(lobbyId);
+    if (!lobby) return;
+    lobby.queued = queued;
+    this.broadcast(lobby);
+  }
+
   setOpen(userId, open) {
     const lobby = this.lobbyOf(userId);
-    if (!lobby || lobby.hostId !== userId) return;
+    if (!lobby || lobby.hostId !== userId || lobby.queued) return;
     lobby.open = !!open;
     clearTimeout(lobby.fillTimer);
     if (lobby.open) this.scheduleFill(lobby);
@@ -161,7 +191,7 @@ export class LobbyManager {
       this.hub.personas.onInvite(
         target._id,
         async () => {
-          if (!this.lobbies.has(lobby.id) || lobby.sessionId || lobby.members.length >= MAX_PLAYERS) return;
+          if (!this.lobbies.has(lobby.id) || lobby.sessionId || lobby.queued || lobby.members.length >= MAX_PLAYERS) return;
           await this.hub.presence.ensurePersona(target._id);
           this.addMember(lobby, target._id);
         },
@@ -193,6 +223,7 @@ export class LobbyManager {
   async start(userId, { replaceMissing = false } = {}) {
     const lobby = this.lobbyOf(userId);
     if (!lobby || lobby.hostId !== userId || lobby.sessionId) return { error: 'Only the host can start' };
+    if (lobby.queued) return { error: 'Stop the ranked search first' };
     const notReady = lobby.members.filter((m) => m !== lobby.hostId && !lobby.ready.has(m));
     if (notReady.length) return { error: 'Not everyone is ready' };
     if (lobby.saved) {
@@ -222,7 +253,7 @@ export class LobbyManager {
     });
     return {
       t: 'lobby:state', id: lobby.id, code: lobby.code, hostId: lobby.hostId, members, open: lobby.open,
-      roundSeconds: lobby.roundSeconds, inGame: !!lobby.sessionId,
+      roundSeconds: lobby.roundSeconds, inGame: !!lobby.sessionId, queued: !!lobby.queued, maxParty: MAX_PARTY,
       saved: lobby.saved ? { id: lobby.saved._id, timeLeft: Math.round(lobby.saved.timeLeft), roster: lobby.saved.roster.map((r) => ({ id: r.id, name: r.name, color: r.color, face: r.face || defaultFace(r.id) })), participants: lobby.saved.participants } : null,
     };
   }

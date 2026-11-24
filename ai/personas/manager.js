@@ -156,6 +156,7 @@ export class PersonaManager {
   release(id, { rematchWith = [] } = {}) {
     const p = this.personas.get(id);
     if (!p) return;
+    if (this.hub?.lobbies.lobbyOf(id)) return; // still sitting in a lobby (custom or ranked group)
     p.busy = false;
     if (rematchWith.length && this.rnd() < 0.35) {
       p.rematch = { with: rematchWith, until: Date.now() + 10 * 60_000 };

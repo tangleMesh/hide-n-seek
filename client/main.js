@@ -141,6 +141,16 @@ function renderLobby(l) {
   $('lobby-count').textContent = `${l.members.length}/16`;
   for (const el of document.querySelectorAll('#screen-lobby .host-only')) el.classList.toggle('hidden', !host);
   $('btn-find').textContent = l.open ? 'Stop searching' : 'Find players';
+  // ranked as a group
+  const qb = $('btn-queue-group');
+  const tooMany = l.members.length > l.maxParty;
+  qb.classList.toggle('hidden', !host || !!l.saved || l.queued);
+  qb.disabled = tooMany;
+  qb.textContent = tooMany ? `🏆 Ranked as group (max ${l.maxParty} players)` : `🏆 Ranked as group (${l.members.length}/${l.maxParty})`;
+  $('lobby-queue').classList.toggle('hidden', !l.queued);
+  if (l.queued && !state.lobbyQueued) $('lobby-queue-text').textContent = 'Searching for a ranked match…';
+  state.lobbyQueued = l.queued;
+  for (const id of ['btn-start', 'btn-find', 'round-len']) $(id).disabled = l.queued || (id === 'round-len' && !!l.saved);
   $('round-len').value = String(l.roundSeconds);
   $('round-len').disabled = !!l.saved;
   const mine = l.members.find((m) => m.id === me);
@@ -312,6 +322,8 @@ $('btn-ready').onclick = () => {
   net.send({ t: 'lobby:ready', ready: !mine?.ready });
 };
 $('btn-find').onclick = () => net.send({ t: 'lobby:open', open: !state.lobby.open });
+$('btn-queue-group').onclick = () => { sfx.unlock(); net.send({ t: 'lobby:queue', on: true }); };
+$('lobby-queue-cancel').onclick = () => net.send({ t: 'lobby:queue', on: false });
 $('round-len').onchange = (e) => net.send({ t: 'lobby:settings', roundSeconds: +e.target.value });
 $('btn-start').onclick = () => { sfx.unlock(); net.send({ t: 'lobby:start' }); };
 $('copy-link').onclick = async () => {
@@ -342,6 +354,13 @@ net.on('queue:status', (m) => {
     $('queue-text').textContent = `Searching for a match… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   } else if (m.state === 'found') $('queue-text').textContent = `Match found: players ${m.found}/${m.needed}`;
   else if (m.state === 'starting') $('queue-text').textContent = 'Match starting…';
+  // the same status for a group searching from its lobby
+  const party = m.party > 1 ? ` as a group of ${m.party}` : '';
+  if (m.state === 'searching') {
+    const s = Math.floor((Date.now() - m.since) / 1000);
+    $('lobby-queue-text').textContent = `Searching for a ranked match${party}… ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  } else if (m.state === 'found') $('lobby-queue-text').textContent = `Match found: players ${m.found}/${m.needed}`;
+  else if (m.state === 'starting') $('lobby-queue-text').textContent = 'Match starting…';
 });
 
 // ---------------- game ----------------
@@ -403,19 +422,24 @@ net.on('roundEnd', (m) => {
   });
   $('results-table').innerHTML = `<tr><th>Player</th><th>Started as</th><th></th><th class="num">Catches</th>${m.ranked ? '<th class="num">Rating</th>' : ''}</tr>${rows.join('')}`;
   $('results-again').classList.toggle('hidden', !m.ranked);
+  $('results-again').textContent = state.lobby ? 'Back to group' : 'Play again';
   $('results').classList.remove('hidden');
 });
 function leaveGameView() {
   state.game?.destroy();
   state.game = null;
   for (const id of ['results', 'menu', 'paused', 'scoreboard']) $(id).classList.add('hidden');
-  if (state.lobby && state.lastMode === 'custom') {
+  if (state.lobby) { // custom game or a ranked group: back to the lobby
     show('lobby');
     renderLobby(state.lobby);
   } else goHome();
 }
 $('results-back').onclick = leaveGameView;
-$('results-again').onclick = () => { leaveGameView(); net.send({ t: 'queue:join' }); };
+$('results-again').onclick = () => {
+  const inGroup = !!state.lobby;
+  leaveGameView();
+  if (!inGroup) net.send({ t: 'queue:join' }); // a group searches again from its lobby (host)
+};
 $('menu-resume').onclick = () => state.game?.toggleMenu(false);
 $('menu-leave').onclick = () => net.send({ t: 'game:leave' });
 $('menu-pause').onclick = () => { net.send({ t: 'game:pause' }); state.game?.toggleMenu(false); };

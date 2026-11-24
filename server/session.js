@@ -16,8 +16,10 @@ export class GameSession {
   /**
    * participants: [{ id, kind: 'human'|'persona', name, color, rating, games }]
    */
-  constructor(hub, { id = randomUUID(), ranked, map, participants, lobbyId = null, roundSeconds, headstart, state = null, filled = false, savedFrom = null }) {
+  constructor(hub, { id = randomUUID(), ranked, map, participants, lobbyId = null, roundSeconds, headstart, state = null, filled = false, savedFrom = null, parties = [] }) {
     this.hub = hub;
+    // ranked groups that queued together (they return to their lobby afterwards)
+    this.partyLobbies = parties.map((p) => p.lobbyId).filter(Boolean);
     this.id = id;
     this.ranked = !!ranked;
     this.map = map;
@@ -42,6 +44,10 @@ export class GameSession {
         const j = randomInt(i + 1);
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
+      // Solo players start as seekers first: a group member seeking their own friends could go easy on them
+      // and push their ratings.
+      const inParty = new Set(parties.flatMap((p) => p.members));
+      shuffled.sort((a, b) => inParty.has(a) - inParty.has(b));
       this.game = new Game(map, { id, playerIds: ids, seekerIds: shuffled.slice(0, startingSeekers(ids.length)), roundSeconds, headstart });
     }
     for (const part of this.p.values()) {

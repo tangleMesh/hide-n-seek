@@ -246,6 +246,39 @@ async function main() {
   h.stopWalking();
   check(true, 'resumed custom game finished');
 
+  // ---------- Scenario D: ranked as a group from the lobby ----------
+  log('Scenario D: two players queue for ranked as a group');
+  await h.waitMsg((m) => m.t === 'lobby:state' && !m.inGame && m.members.some((x) => x.id === g2.id), 10000, 'back in lobby after game');
+  g2.send({ t: 'lobby:ready', ready: true });
+  await h.waitMsg((m) => m.t === 'lobby:state' && m.members.every((x) => x.ready), 5000, 'group ready');
+  h.mark();
+  g2.mark();
+  h.send({ t: 'lobby:queue', on: true });
+  const [qa, qb] = await Promise.all([h, g2].map((c) => c.waitMsg((m) => m.t === 'queue:status' && m.state === 'searching', 5000, 'group searching')));
+  check(qa.party === 2 && qb.party === 2, 'both group members are searching together');
+  // un-readying stops the search for the whole group
+  h.mark();
+  g2.send({ t: 'lobby:ready', ready: false });
+  await h.waitMsg((m) => m.t === 'queue:status' && m.state === 'idle', 5000, 'search stopped');
+  check(true, 'a member un-readying stops the group search');
+  g2.send({ t: 'lobby:ready', ready: true });
+  await h.waitMsg((m) => m.t === 'lobby:state' && m.members.every((x) => x.ready) && !m.queued, 5000, 'group ready again');
+  h.mark();
+  g2.mark();
+  h.send({ t: 'lobby:queue', on: true });
+  const [ga, gb] = await Promise.all([h, g2].map((c) => c.waitMsg((m) => m.t === 'game:start', 30000, 'group ranked start')));
+  check(ga.ranked && ga.gameId === gb.gameId, 'the group plays the same ranked match');
+  check(ga.roster.length >= 8, `match filled to ${ga.roster.length} players`);
+  const [sa, sb] = await Promise.all([h, g2].map((c) => c.waitMsg((m) => m.t === 'snap', 5000, 'group snap')));
+  check(sa.you.role === 'hider' && sb.you.role === 'hider', 'group members do not start as seekers (solo players do)');
+  h.startWalking();
+  g2.startWalking();
+  await Promise.all([h, g2].map((c) => c.waitMsg((m) => m.t === 'roundEnd', 60000, 'roundEnd D')));
+  h.stopWalking();
+  g2.stopWalking();
+  const back = await g2.waitMsg((m) => m.t === 'lobby:state' && !m.inGame && !m.queued, 10000, 'group lobby after ranked');
+  check(back.members.some((x) => x.id === h.id) && back.members.some((x) => x.id === g2.id), 'the group is back in its lobby after the match');
+
   // ---------- No bot leaks ----------
   log('Checking traffic and public API for persona leaks');
   const leaks = allTraffic.filter((s) => /persona|"kind":"(human|persona)"|"bot":|isBot|botModel|"traits"/i.test(s));

@@ -75,6 +75,7 @@
         <h2>Players <span class="mute" id="lobby-count"></span></h2>
         <div id="saved-banner" class="banner hidden"></div>
         <div id="color-banner" class="banner hidden"></div>
+        <div id="lobby-queue" class="banner queue-banner hidden"><div class="spinner"></div><span id="lobby-queue-text">Searching…</span><button class="ghost" id="lobby-queue-cancel">Stop search</button></div>
         <ul id="lobby-members" class="members"></ul>
         <div class="row lobby-actions">
           <button id="btn-ready">Ready</button>
@@ -82,6 +83,7 @@
           <button id="btn-find" class="host-only">Find players</button>
           <select id="round-len" class="host-only"><option value="120">2 min</option><option value="180">3 min</option><option value="300" selected>5 min</option><option value="420">7 min</option></select>
           <button class="primary host-only" id="btn-start">Start game</button>
+          <button class="host-only ranked-group" id="btn-queue-group" title="Everyone in this lobby (up to 4 players) queues for ranked together and plays in the same match">🏆 Ranked as group</button>
         </div>
         <div class="chat-bar" id="lobby-chat-bar"></div>
         <ul class="chat-log" id="lobby-chat"></ul>

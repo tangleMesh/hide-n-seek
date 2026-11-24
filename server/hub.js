@@ -116,7 +116,7 @@ export class Hub {
     if (session && session.onConnect(user._id)) return;
     const lobby = this.lobbies.lobbyOf(user._id);
     if (lobby) conn.send(JSON.stringify(this.lobbies.publicState(lobby)));
-    if (this.matchmaker.has(user._id)) this.matchmaker.status(user._id);
+    if (this.matchmaker.has(user._id)) this.matchmaker.status(this.matchmaker.entryOf(user._id));
   }
 
   onClose(conn) {
@@ -177,6 +177,7 @@ export class Hub {
       case 'lobby:ready': return this.lobbies.setReady(uid, !!msg.ready);
       case 'lobby:kick': return this.lobbies.kick(uid, msg.id);
       case 'lobby:open': return this.lobbies.setOpen(uid, !!msg.open);
+      case 'lobby:queue': return err(await this.lobbies.queueRanked(uid, !!msg.on));
       case 'lobby:settings': return this.lobbies.setSettings(uid, { roundSeconds: msg.roundSeconds | 0 });
       case 'lobby:invite': {
         const r = await this.lobbies.invite(uid, String(msg.name || ''));
@@ -261,9 +262,16 @@ export class Hub {
     this.emitActivity();
   }
 
-  async startRanked(ids, { filled }) {
+  async startRanked(ids, { filled, parties = [] }) {
     const participants = await this.participantsFor(ids);
-    const s = new GameSession(this, { ranked: true, map: this.map, participants, filled, roundSeconds: +process.env.ROUND_SECONDS || undefined, headstart: process.env.HEADSTART_SECONDS ? +process.env.HEADSTART_SECONDS : undefined });
+    const s = new GameSession(this, { ranked: true, map: this.map, participants, filled, parties, roundSeconds: +process.env.ROUND_SECONDS || undefined, headstart: process.env.HEADSTART_SECONDS ? +process.env.HEADSTART_SECONDS : undefined });
+    for (const lid of s.partyLobbies) {
+      const lobby = this.lobbies.get(lid);
+      if (!lobby) continue;
+      lobby.queued = false;
+      lobby.sessionId = s.id;
+      this.lobbies.broadcast(lobby);
+    }
     this.launch(s);
     return s;
   }
@@ -287,13 +295,12 @@ export class Hub {
     this.sessions.delete(session.id);
     for (const part of session.p.values()) {
       if (this.sessionOf.get(part.id) === session) this.sessionOf.delete(part.id);
-      if (part.kind === 'persona' && !results) {
-        const inLobby = session.lobbyId && this.lobbies.get(session.lobbyId)?.members.includes(part.id);
-        if (!inLobby) this.personas.release(part.id);
-      }
+      if (part.kind === 'persona' && !results && !this.lobbies.lobbyOf(part.id)) this.personas.release(part.id);
     }
-    const lobby = session.lobbyId && this.lobbies.get(session.lobbyId);
-    if (lobby) {
+    // custom lobby, or the lobbies of ranked groups: everyone comes back to their lobby
+    for (const lid of [session.lobbyId, ...(session.partyLobbies || [])]) {
+      const lobby = lid && this.lobbies.get(lid);
+      if (!lobby || lobby.sessionId !== session.id) continue;
       lobby.sessionId = null;
       lobby.ready.clear();
       if (lobby.saved) lobby.saved = null;
