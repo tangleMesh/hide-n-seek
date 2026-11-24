@@ -158,3 +158,27 @@ test('sneaking drains stamina: nobody can creep forever', () => {
   }
   assert.ok(walked, 'after the stamina runs out the player is forced to walk');
 });
+
+test('looks: colors are unique per game, first player keeps theirs, free colors are kept', async () => {
+  const { uniqueColors, defaultFace, FACES } = await import('../shared/look.js');
+  const { COLORS } = await import('../shared/constants.js');
+  const list = [
+    { id: 'a', color: COLORS[0] },
+    { id: 'b', color: COLORS[0] },
+    { id: 'c', color: COLORS[1] },
+    { id: 'd', color: 'nonsense' },
+  ];
+  const out = uniqueColors(list);
+  assert.equal(out.get('a'), COLORS[0]);
+  assert.equal(out.get('c'), COLORS[1]);
+  assert.notEqual(out.get('b'), COLORS[0]);
+  assert.equal(new Set(out.values()).size, 4);
+  for (const c of out.values()) assert.ok(COLORS.includes(c));
+  // 16 players all with the same color still end up with 16 different colors
+  const all = uniqueColors(Array.from({ length: 16 }, (_, i) => ({ id: 'p' + i, color: COLORS[3] })));
+  assert.equal(new Set(all.values()).size, 16);
+  // deterministic (the lobby and the game that starts from it agree)
+  assert.deepEqual([...uniqueColors(list)], [...out]);
+  assert.ok(FACES.includes(defaultFace('someone')));
+  assert.equal(defaultFace('someone'), defaultFace('someone'));
+});

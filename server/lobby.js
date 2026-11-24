@@ -1,6 +1,7 @@
 // Custom lobbies: codes, invites, host migration, kick, "find players" (persona fill), ready-up,
 // and lobbies created from a saved game (resume only with the same human players).
 import { randomUUID, randomInt } from 'node:crypto';
+import { defaultFace } from '../shared/look.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const MAX_PLAYERS = 16;
@@ -213,14 +214,16 @@ export class LobbyManager {
 
   publicState(lobby) {
     const pres = this.hub.presence;
+    const savedColor = new Map((lobby.saved?.roster || []).map((r) => [r.id, r.color]));
+    const colors = this.hub.gameColors(lobby.members.map((id) => ({ id, color: savedColor.get(id) || pres.get(id)?.user?.color })));
     const members = lobby.members.map((id) => {
       const u = pres.get(id)?.user;
-      return { id, name: u?.name, color: u?.color, rating: u?.rating, ready: lobby.ready.has(id) || id === lobby.hostId, host: id === lobby.hostId, ping: this.hub.pingOf(id) };
+      return { id, name: u?.name, color: colors.get(id), face: u?.face || defaultFace(id), rating: u?.rating, ready: lobby.ready.has(id) || id === lobby.hostId, host: id === lobby.hostId, ping: this.hub.pingOf(id) };
     });
     return {
       t: 'lobby:state', id: lobby.id, code: lobby.code, hostId: lobby.hostId, members, open: lobby.open,
       roundSeconds: lobby.roundSeconds, inGame: !!lobby.sessionId,
-      saved: lobby.saved ? { id: lobby.saved._id, timeLeft: Math.round(lobby.saved.timeLeft), roster: lobby.saved.roster.map((r) => ({ id: r.id, name: r.name, color: r.color })), participants: lobby.saved.participants } : null,
+      saved: lobby.saved ? { id: lobby.saved._id, timeLeft: Math.round(lobby.saved.timeLeft), roster: lobby.saved.roster.map((r) => ({ id: r.id, name: r.name, color: r.color, face: r.face || defaultFace(r.id) })), participants: lobby.saved.participants } : null,
     };
   }
 

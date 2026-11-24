@@ -101,7 +101,7 @@ export class PersonaManager {
     const traits = generateTraits(this.rnd, this.map);
     const rating = Math.round(targetRating + (this.rnd() - 0.5) * 80);
     const hist = generateHistory(this.rnd, rating);
-    const user = await this.repos.users.create({ name, color: traits.color, rating, games: hist.games, wins: hist.wins, createdAt: hist.createdAt, kind: 'persona', pwHash: null, salt: null });
+    const user = await this.repos.users.create({ name, color: traits.color, face: traits.face, rating, games: hist.games, wins: hist.wins, createdAt: hist.createdAt, kind: 'persona', pwHash: null, salt: null });
     await this.repos.personas.insert({ _id: user._id, traits, tilt: 0, createdAt: Date.now() });
     await this.repos.matches.insertMany(generateRecentMatches(this.rnd, user, 6 + Math.floor(this.rnd() * 6)).map((m, i) => ({ _id: `${user._id}-h${i}`, ...m })));
     const st = this.stateFrom({ _id: user._id, traits, tilt: 0 }, user);

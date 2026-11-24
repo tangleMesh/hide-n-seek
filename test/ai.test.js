@@ -98,6 +98,6 @@ test('persona selection: reuse within the rating window, ~25% fresh personas', a
   const u = await repos.users.byId(newest.id);
   assert.ok(u.games > 0 && u.createdAt < Date.now() - 86400_000);
   assert.ok((await repos.matches.recentFor(u._id)).length > 0);
-  assert.deepEqual(Object.keys(publicUser(u)).sort(), ['color', 'createdAt', 'games', 'id', 'name', 'rating', 'wins']);
+  assert.deepEqual(Object.keys(publicUser(u)).sort(), ['color', 'createdAt', 'face', 'games', 'id', 'name', 'rating', 'wins']);
   await store.close();
 });

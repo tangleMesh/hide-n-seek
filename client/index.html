@@ -29,7 +29,7 @@
   <section id="screen-home" class="screen">
     <header class="topbar">
       <div class="logo small">HUSH<span>.</span></div>
-      <div class="me"><span class="dot" id="me-dot"></span><b id="me-name"></b><span class="rating" id="me-rating"></span><button class="ghost" id="logout">Log out</button></div>
+      <div class="me"><button class="look-btn" id="me-look" title="Change your color and face"><img id="me-avatar" class="avatar" width="30" height="30" alt=""><span>Edit look</span></button><b id="me-name"></b><span class="rating" id="me-rating"></span><button class="ghost" id="logout">Log out</button></div>
     </header>
     <div class="home-grid">
       <div class="card play">
@@ -74,9 +74,11 @@
       <div class="card">
         <h2>Players <span class="mute" id="lobby-count"></span></h2>
         <div id="saved-banner" class="banner hidden"></div>
+        <div id="color-banner" class="banner hidden"></div>
         <ul id="lobby-members" class="members"></ul>
         <div class="row lobby-actions">
           <button id="btn-ready">Ready</button>
+          <button id="btn-look">Change look</button>
           <button id="btn-find" class="host-only">Find players</button>
           <select id="round-len" class="host-only"><option value="120">2 min</option><option value="180">3 min</option><option value="300" selected>5 min</option><option value="420">7 min</option></select>
           <button class="primary host-only" id="btn-start">Start game</button>
@@ -136,6 +138,18 @@
     </div>
     <div id="results" class="overlay hidden"><div class="card results"><h2 id="results-title"></h2><table id="results-table"></table><div class="row"><button class="primary" id="results-again">Play again</button><button id="results-back">Back</button></div></div></div>
   </section>
+
+  <div id="look" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="look-title">
+    <div class="card look">
+      <h2 id="look-title">Your look</h2>
+      <div class="look-top"><canvas id="look-preview" width="96" height="96"></canvas><div><b id="look-face-name"></b><p class="mute" id="look-note">Colors are unique in every game: if someone else already has yours, you get a free one for that game.</p></div></div>
+      <h3>Color</h3>
+      <div id="look-colors" class="swatches"></div>
+      <h3>Face</h3>
+      <div id="look-faces" class="face-grid"></div>
+      <div class="row"><button class="primary" id="look-save">Save</button><button id="look-cancel">Cancel</button></div>
+    </div>
+  </div>
 
   <div id="toasts"></div>
   <div id="conn" class="conn hidden">Reconnecting…</div>

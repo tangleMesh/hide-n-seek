@@ -1,8 +1,9 @@
 // App shell: auth, home, lobby, queue, game lifecycle, invites, toasts.
 import { Net } from './net.js';
 import { GameView, escapeHtml } from './game.js';
-import { QUICK_CHAT } from '/shared/constants.js';
+import { QUICK_CHAT, COLORS } from '/shared/constants.js';
 import { sfx } from './audio.js';
+import { avatarHTML, avatarURL, drawAvatar, FACES, FACE_LABELS } from './faces.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { token: null, user: null, lobby: null, game: null, mapDef: null, lastMode: null, joinCode: null };
@@ -84,7 +85,7 @@ function setSession(token, user) {
 function renderMe() {
   $('me-name').textContent = state.user.name;
   $('me-rating').textContent = state.user.rating;
-  $('me-dot').style.background = state.user.color;
+  $('me-avatar').src = avatarURL(state.user.color, state.user.face, 30);
 }
 
 async function goHome() {
@@ -104,7 +105,7 @@ async function refreshHome() {
     const [me, lb, saved, online] = await Promise.all([api('/api/me'), api('/api/leaderboard'), api('/api/saved-games'), api('/api/online')]);
     state.user = me.user;
     renderMe();
-    $('leaderboard').innerHTML = lb.players.map((p) => `<li><span class="dot" style="background:${p.color}"></span><span class="name">${escapeHtml(p.name)}</span><span class="rating">${p.rating}</span></li>`).join('');
+    $('leaderboard').innerHTML = lb.players.map((p) => `<li>${avatarHTML(p)}<span class="name">${escapeHtml(p.name)}</span><span class="rating">${p.rating}</span></li>`).join('');
     $('saved-games').innerHTML = saved.games.length
       ? `<h2 style="margin-top:16px">Saved games</h2><ul class="online-list saved">${saved.games.map((g) => `<li><span class="name">${escapeHtml(g.players.join(', '))}<br><span class="mute">${Math.floor(g.timeLeft / 60)}:${String(g.timeLeft % 60).padStart(2, '0')} left · ${new Date(g.savedAt).toLocaleString()}</span></span><button data-resume="${g.id}">Resume</button></li>`).join('')}</ul>`
       : '';
@@ -117,7 +118,7 @@ async function refreshHome() {
 
 function renderOnline(el, list, invite) {
   el.innerHTML = list.length
-    ? list.map((p) => `<li><span class="dot" style="background:${p.color}"></span><span class="name">${escapeHtml(p.name)} <span class="mute">${p.rating}</span></span><span class="mute">${p.status}</span>${invite && p.status === 'online' ? `<button data-invite="${escapeHtml(p.name)}">Invite</button>` : ''}</li>`).join('')
+    ? list.map((p) => `<li>${avatarHTML(p)}<span class="name">${escapeHtml(p.name)} <span class="mute">${p.rating}</span></span><span class="mute">${p.status}</span>${invite && p.status === 'online' ? `<button data-invite="${escapeHtml(p.name)}">Invite</button>` : ''}</li>`).join('')
     : '<li class="mute">Nobody else online right now</li>';
   for (const b of el.querySelectorAll('[data-invite]')) b.onclick = () => net.send({ t: 'lobby:invite', name: b.dataset.invite });
 }
@@ -146,7 +147,7 @@ function renderLobby(l) {
   $('btn-ready').textContent = mine?.ready ? 'Not ready' : 'Ready';
   $('btn-ready').classList.toggle('hidden', host);
   $('lobby-members').innerHTML = l.members.map((m) => `
-    <li><span class="dot" style="background:${m.color}"></span><span class="name">${m.host ? '👑 ' : ''}${escapeHtml(m.name || '…')} <span class="mute">${m.rating ?? ''}</span></span>
+    <li>${avatarHTML(m)}<span class="name">${m.host ? '👑 ' : ''}${escapeHtml(m.name || '…')} <span class="mute">${m.rating ?? ''}</span></span>
     <span class="${m.ready ? 'tag-ready' : 'tag-wait'}">${m.ready ? 'ready' : 'waiting'}</span><span class="ping">${m.ping != null ? m.ping + ' ms' : ''}</span>
     ${host && m.id !== me ? `<button class="ghost" data-kick="${m.id}">✕</button>` : ''}</li>`).join('');
   for (const b of document.querySelectorAll('[data-kick]')) b.onclick = () => net.send({ t: 'lobby:kick', id: b.dataset.kick });
@@ -158,11 +159,79 @@ function renderLobby(l) {
     banner.innerHTML = `<b>Saved game</b> (${Math.floor(l.saved.timeLeft / 60)}:${String(l.saved.timeLeft % 60).padStart(2, '0')} left). ` +
       (missing.length ? `Waiting for: ${missing.map((m) => escapeHtml(m.name)).join(', ')}. Invite them or start with AI stand-ins.` : 'Everyone is here.');
   } else banner.classList.add('hidden');
+  // Colors are unique per lobby/game: tell the player when theirs was taken and they got another one.
+  const cb = $('color-banner');
+  const bumped = mine && !l.saved && mine.color !== state.user.color;
+  cb.classList.toggle('hidden', !bumped);
+  if (bumped) {
+    const holder = l.members.find((m) => m.id !== me && m.color === state.user.color);
+    cb.innerHTML = `${avatarHTML({ color: state.user.color, face: state.user.face }, 18)} Your color is taken${holder ? ` by <b>${escapeHtml(holder.name || '…')}</b>` : ''}, so you play as ${avatarHTML(mine, 18)} in this lobby. <button class="ghost" id="color-banner-pick">Pick another color</button>`;
+    $('color-banner-pick').onclick = () => openLook();
+    if (state.bumpedNotice !== l.id) {
+      state.bumpedNotice = l.id;
+      toast('Someone in this lobby already has your color, so you got a different one.');
+    }
+  }
+  if (lookOpen()) renderLook();
   if (state.screen !== 'lobby' && !state.game) {
     show('lobby');
     refreshLobbyOnline();
   }
 }
+
+// ---------------- look (color + face) ----------------
+const look = { color: null, face: null };
+const lookOpen = () => !$('look').classList.contains('hidden');
+
+function openLook() {
+  look.color = state.user.color;
+  look.face = state.user.face;
+  $('look').classList.remove('hidden');
+  renderLook();
+}
+function closeLook() {
+  $('look').classList.add('hidden');
+}
+
+// Colors other lobby members are playing with can't be picked (faces can be shared).
+function takenColors() {
+  if (state.screen !== 'lobby' || !state.lobby) return new Set();
+  return new Set(state.lobby.members.filter((m) => m.id !== state.user.id).map((m) => m.color));
+}
+
+function renderLook() {
+  const taken = takenColors();
+  if (taken.has(look.color)) look.color = COLORS.find((c) => !taken.has(c)) || look.color;
+  $('look-colors').innerHTML = COLORS.map((c) => {
+    const holder = taken.has(c) ? state.lobby.members.find((m) => m.id !== state.user.id && m.color === c) : null;
+    return `<button data-color="${c}" class="${c === look.color ? 'sel' : ''}" style="background:${c}" ${holder ? 'disabled' : ''} title="${holder ? 'Taken by ' + escapeHtml(holder.name || '…') : c}" aria-label="${holder ? 'taken' : 'color ' + c}"></button>`;
+  }).join('');
+  $('look-faces').innerHTML = FACES.map((f) => `<button data-face="${f}" class="${f === look.face ? 'sel' : ''}" title="${FACE_LABELS[f]}" aria-label="${FACE_LABELS[f]}"><img alt="" src="${avatarURL(look.color, f, 44)}"></button>`).join('');
+  for (const b of $('look-colors').querySelectorAll('button')) b.onclick = () => { look.color = b.dataset.color; renderLook(); };
+  for (const b of $('look-faces').querySelectorAll('button')) b.onclick = () => { look.face = b.dataset.face; renderLook(); };
+  const cv = $('look-preview');
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  if (cv.width !== 96 * dpr) cv.width = cv.height = 96 * dpr;
+  const g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height);
+  drawAvatar(g, cv.width / 2, cv.height / 2, cv.width / 2 - 3 * dpr, look.color, look.face);
+  $('look-face-name').textContent = FACE_LABELS[look.face] || '';
+}
+
+$('me-look').onclick = () => openLook();
+$('btn-look').onclick = () => openLook();
+$('look-cancel').onclick = () => closeLook();
+$('look').onclick = (e) => { if (e.target.id === 'look') closeLook(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lookOpen()) closeLook(); });
+$('look-save').onclick = () => {
+  net.send({ t: 'me:look', color: look.color, face: look.face });
+  closeLook();
+};
+net.on('me', (m) => {
+  state.user = { ...state.user, ...m.user };
+  renderMe();
+  if (state.lobby) renderLobby(state.lobby);
+});
 
 function refreshLobbyOnline() {
   net.send({ t: 'online:list' });
@@ -251,7 +320,7 @@ net.on('roundEnd', (m) => {
   $('results-title').textContent = (m.winner === 'seekers' ? 'Seekers win. Everyone was found.' : 'Hiders win. Someone stayed hidden.') + (me ? (me.win ? ' 🎉 You won!' : ' You lost.') : '');
   const rows = m.results.sort((a, b) => (b.win - a.win) || (b.catches - a.catches)).map((r) => {
     const info = state.game?.roster.get(r.id);
-    return `<tr><td><span class="dot" style="background:${info?.color}"></span> ${escapeHtml(r.name)}</td><td>${r.startRole === 'seeker' ? '🔦 seeker' : '🫣 hider'}</td><td>${r.caught ? 'caught' : r.startRole === 'hider' ? 'survived' : ''}</td><td class="num">${r.catches}</td>${m.ranked ? `<td class="num ${r.delta >= 0 ? 'up' : 'down'}">${r.delta >= 0 ? '+' : ''}${r.delta}</td>` : ''}</tr>`;
+    return `<tr><td>${avatarHTML(info)} ${escapeHtml(r.name)}</td><td>${r.startRole === 'seeker' ? '🔦 seeker' : '🫣 hider'}</td><td>${r.caught ? 'caught' : r.startRole === 'hider' ? 'survived' : ''}</td><td class="num">${r.catches}</td>${m.ranked ? `<td class="num ${r.delta >= 0 ? 'up' : 'down'}">${r.delta >= 0 ? '+' : ''}${r.delta}</td>` : ''}</tr>`;
   });
   $('results-table').innerHTML = `<tr><th>Player</th><th>Started as</th><th></th><th class="num">Catches</th>${m.ranked ? '<th class="num">Rating</th>' : ''}</tr>${rows.join('')}`;
   $('results-again').classList.toggle('hidden', !m.ranked);

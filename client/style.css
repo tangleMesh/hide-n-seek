@@ -108,6 +108,28 @@ td.num, th.num { text-align: right; }
 .version { position: fixed; right: 8px; bottom: 6px; font-size: 11px; color: var(--mute); opacity: 0.6; pointer-events: none; z-index: 5; }
 #screen-game.active ~ .version { display: none; }
 
+/* looks: avatars, color + face picker */
+.avatar { width: 22px; height: 22px; border-radius: 50%; flex: none; vertical-align: middle; }
+.look-btn { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 999px; }
+.look-btn .avatar { width: 30px; height: 30px; }
+.look-btn span { font-size: 13px; color: var(--mute); }
+.modal { position: fixed; inset: 0; z-index: 40; background: rgba(5,6,10,.7); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+.look { width: min(520px, 100%); display: grid; gap: 10px; }
+.look h3 { margin: 6px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--mute); }
+.look-top { display: flex; gap: 16px; align-items: center; }
+.look-top canvas { width: 96px; height: 96px; flex: none; }
+.look-top p { margin: 4px 0 0; font-size: 13px; }
+.swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.swatches button { aspect-ratio: 1; padding: 0; border-radius: 50%; border: 3px solid transparent; position: relative; min-width: 0; }
+.swatches button.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--bg) inset; }
+.swatches button:disabled { opacity: .25; cursor: not-allowed; }
+.swatches button:disabled::after { content: '✕'; position: absolute; inset: 0; display: grid; place-items: center; color: #000; font-weight: 700; }
+.face-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.face-grid button { padding: 4px; border-radius: 12px; border: 2px solid var(--line); background: var(--panel2); min-width: 0; }
+.face-grid button.sel { border-color: var(--accent); }
+.face-grid img { width: 100%; height: auto; display: block; }
+@media (max-width: 480px) { .swatches, .face-grid { grid-template-columns: repeat(4, 1fr); } .look-btn span { display: none; } }
+
 @media (max-width: 640px) {
   .logo { font-size: 40px; }
   .bars { width: 130px; }

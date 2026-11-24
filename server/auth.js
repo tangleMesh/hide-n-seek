@@ -1,6 +1,7 @@
 import { scrypt, randomBytes, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { COLORS } from '../shared/constants.js';
+import { FACES } from '../shared/look.js';
 
 const scryptAsync = promisify(scrypt);
 
@@ -30,9 +31,10 @@ export async function register(repos, name, password) {
   if (await repos.users.nameTaken(name)) return { error: 'Name already taken' };
   const { salt, pwHash } = await hashPassword(password);
   const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const face = FACES[Math.floor(Math.random() * FACES.length)];
   let user;
   try {
-    user = await repos.users.create({ name, salt, pwHash, color });
+    user = await repos.users.create({ name, salt, pwHash, color, face });
   } catch (e) {
     if (e.code === 11000) return { error: 'Name already taken' };
     throw e;

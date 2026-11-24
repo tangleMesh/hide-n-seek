@@ -1,6 +1,7 @@
 // Hub: presence, message routing, lobby/queue/session orchestration and crash recovery.
 import { QUICK_CHAT } from '../shared/constants.js';
 import { publicUser } from './data/index.js';
+import { uniqueColors, isColor, isFace, defaultFace } from '../shared/look.js';
 import { LobbyManager } from './lobby.js';
 import { Matchmaker } from './matchmaker.js';
 import { GameSession } from './session.js';
@@ -202,6 +203,7 @@ export class Hub {
         return err(await this.matchmaker.join(uid));
       }
       case 'queue:leave': return this.matchmaker.leave(uid);
+      case 'me:look': return err(await this.setLook(uid, msg));
       case 'online:list': return reply({ t: 'online', list: this.onlineList(uid) });
     }
   }
@@ -221,10 +223,32 @@ export class Hub {
   async participantsFor(ids) {
     const users = await this.repos.users.byIds(ids);
     const byId = new Map(users.map((u) => [u._id, u]));
-    return ids.filter((id) => byId.has(id)).map((id) => {
+    const parts = ids.filter((id) => byId.has(id)).map((id) => {
       const u = byId.get(id);
-      return { id, kind: this.personas.isPersona(id) ? 'persona' : 'human', name: u.name, color: u.color, rating: u.rating, games: u.games };
+      return { id, kind: this.personas.isPersona(id) ? 'persona' : 'human', name: u.name, color: u.color, face: u.face || defaultFace(id), rating: u.rating, games: u.games };
     });
+    const colors = this.gameColors(parts);
+    for (const p of parts) p.color = colors.get(p.id);
+    return parts;
+  }
+
+  // Colors are unique within a lobby/game. Humans' choices are honored first, then join order decides.
+  gameColors(list) {
+    const humans = list.filter((p) => !this.personas.isPersona(p.id));
+    const others = list.filter((p) => this.personas.isPersona(p.id));
+    return uniqueColors([...humans, ...others]);
+  }
+
+  async setLook(uid, { color, face }) {
+    if (!isColor(color) || !isFace(face)) return { error: 'Unknown color or face' };
+    if (this.personas.isPersona(uid)) return;
+    await this.repos.users.update(uid, { color, face });
+    const e = this.presence.get(uid);
+    if (e) Object.assign(e.user, { color, face });
+    const user = e?.user || (await this.repos.users.byId(uid));
+    this.sendTo(uid, { t: 'me', user: publicUser(user) });
+    const lobby = this.lobbies.lobbyOf(uid);
+    if (lobby) this.lobbies.broadcast(lobby);
   }
 
   launch(session) {

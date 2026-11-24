@@ -4,6 +4,7 @@ import { stepMovement } from '/shared/physics.js';
 import { DT, ITEMS, QUICK_CHAT } from '/shared/constants.js';
 import { Renderer } from './render.js';
 import { sfx } from './audio.js';
+import { avatarHTML } from './faces.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -288,7 +289,7 @@ export class GameView {
   renderScoreboard() {
     const rows = [...this.roster.values()].map((r) => {
       const ping = this.pings[r.id];
-      return `<tr><td><span class="dot" style="background:${r.color}"></span> ${escapeHtml(r.name)}${this.away.has(r.id) ? ' ⚡' : ''}</td><td class="num">${r.rating}</td><td class="num">${ping != null ? ping + ' ms' : '–'}</td></tr>`;
+      return `<tr><td>${avatarHTML(r)} ${escapeHtml(r.name)}${this.away.has(r.id) ? ' ⚡' : ''}</td><td class="num">${r.rating}</td><td class="num">${ping != null ? ping + ' ms' : '–'}</td></tr>`;
     });
     $('score-table').innerHTML = `<tr><th>Player</th><th class="num">Rating</th><th class="num">Ping</th></tr>${rows.join('')}`;
   }

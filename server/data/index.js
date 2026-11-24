@@ -2,6 +2,7 @@
 // (Mongo or memory) is swappable. To add another document database, implement the DocumentStore
 // contract (see server/data/memory/store.js) and register it in createStore().
 import { randomUUID } from 'node:crypto';
+import { defaultFace } from '../../shared/look.js';
 import { MemoryStore } from './memory/store.js';
 
 export async function createStore(opts = {}) {
@@ -28,7 +29,7 @@ export const newId = () => randomUUID();
 // Fields every client may see about any account (humans and personas alike).
 export function publicUser(u) {
   if (!u) return null;
-  return { id: u._id, name: u.name, rating: u.rating, games: u.games, wins: u.wins, color: u.color, createdAt: u.createdAt };
+  return { id: u._id, name: u.name, rating: u.rating, games: u.games, wins: u.wins, color: u.color, face: u.face || defaultFace(u._id), createdAt: u.createdAt };
 }
 
 export async function createRepositories(store) {

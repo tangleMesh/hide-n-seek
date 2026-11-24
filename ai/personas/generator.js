@@ -1,5 +1,6 @@
 // Generates believable player identities, personalities and backfilled history for personas.
 import { COLORS } from '../../shared/constants.js';
+import { FACES } from '../../shared/look.js';
 
 const ADJ = ['mossy', 'quiet', 'sly', 'lazy', 'tiny', 'crispy', 'salty', 'sneaky', 'grumpy', 'fuzzy', 'dusty', 'shy', 'wild', 'sleepy', 'lucky', 'frosty', 'brave', 'odd', 'swift', 'cosmic', 'velvet', 'night', 'blue', 'mild', 'loud'];
 const NOUN = ['fox', 'owl', 'moth', 'otter', 'badger', 'ghost', 'panda', 'toast', 'pickle', 'noodle', 'raven', 'bean', 'hedgehog', 'shadow', 'lynx', 'cat', 'koala', 'wombat', 'gecko', 'mango', 'pebble', 'cloud', 'squid', 'wolf', 'muffin'];
@@ -41,6 +42,7 @@ export function generateTraits(rnd, map) {
     chattiness: +(rnd() ** 1.5).toFixed(2),
     pingBase: Math.round(18 + rnd() ** 2 * 100),
     color: pick(rnd, COLORS),
+    face: pick(rnd, FACES),
   };
 }
 

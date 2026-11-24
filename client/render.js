@@ -1,5 +1,6 @@
 // Canvas renderer: tile map, lights, fog of war (visibility polygons), entities, ripples.
 import { VISION, ITEMS } from '/shared/constants.js';
+import { avatarSprite } from './faces.js';
 
 const TILE_COLORS = {
   wall: ['#2a2d38', '#30343f'], hedge: ['#173a22', '#1c4428'], furniture: ['#5a4030', '#634636'],
@@ -288,29 +289,31 @@ export class Renderer {
 
   drawPlayer(p, view) {
     const g = this.ctx, px = this.px;
-    const info = view.roster.get(p.id) || { name: '?', color: '#999' };
+    const info = view.roster.get(p.id) || { name: '?', color: '#999', face: 'meh' };
     const x = this.sx(p.x), y = this.sy(p.y);
-    const r = px * 0.36;
+    const r = px * 0.4;
     if (p.role === 'seeker') {
       g.fillStyle = 'rgba(255,209,102,.25)';
       g.beginPath();
       g.arc(x, y, r * 1.6, 0, Math.PI * 2);
       g.fill();
     }
-    g.fillStyle = info.color;
+    const spr = avatarSprite(info.color, info.face, r);
+    g.drawImage(spr, x - spr.width / 2, y - spr.height / 2);
     g.beginPath();
     g.arc(x, y, r, 0, Math.PI * 2);
-    g.fill();
     g.lineWidth = p.isMe ? 3 : 2;
     g.strokeStyle = p.role === 'seeker' ? '#ffd166' : p.isMe ? '#fff' : 'rgba(0,0,0,.6)';
     g.stroke();
-    // facing indicator
-    g.strokeStyle = 'rgba(255,255,255,.8)';
-    g.lineWidth = 2;
+    // facing indicator: a small notch outside the disc, so the face stays readable
+    const ax = Math.cos(p.aim), ay = Math.sin(p.aim), nx = -ay, ny = ax;
+    g.fillStyle = p.role === 'seeker' ? '#ffd166' : 'rgba(255,255,255,.9)';
     g.beginPath();
-    g.moveTo(x + Math.cos(p.aim) * r * 0.4, y + Math.sin(p.aim) * r * 0.4);
-    g.lineTo(x + Math.cos(p.aim) * r * 1.05, y + Math.sin(p.aim) * r * 1.05);
-    g.stroke();
+    g.moveTo(x + ax * r * 1.55, y + ay * r * 1.55);
+    g.lineTo(x + ax * r * 1.12 + nx * r * 0.32, y + ay * r * 1.12 + ny * r * 0.32);
+    g.lineTo(x + ax * r * 1.12 - nx * r * 0.32, y + ay * r * 1.12 - ny * r * 0.32);
+    g.closePath();
+    g.fill();
     g.font = `${Math.round(px * 0.34)}px system-ui`;
     g.textAlign = 'center';
     g.textBaseline = 'bottom';

@@ -59,7 +59,7 @@ export class GameSession {
   }
 
   roster() {
-    return [...this.p.values()].map((x) => ({ id: x.id, name: x.name, color: x.color, rating: x.rating }));
+    return [...this.p.values()].map((x) => ({ id: x.id, name: x.name, color: x.color, face: x.face, rating: x.rating }));
   }
 
   humans() {
@@ -245,7 +245,7 @@ export class GameSession {
       lobbyId: this.lobbyId,
       mapId: this.map.id,
       filled: this.filled,
-      participants: [...this.p.values()].map((x) => ({ id: x.id, kind: x.kind, name: x.name, color: x.color, rating: x.rating, games: x.games, left: x.left })),
+      participants: [...this.p.values()].map((x) => ({ id: x.id, kind: x.kind, name: x.name, color: x.color, face: x.face, rating: x.rating, games: x.games, left: x.left })),
       state: this.game.serialize(),
       paused: this.paused,
     };

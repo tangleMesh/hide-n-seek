@@ -32,6 +32,8 @@ Open the page in a few browser tabs, or click **Play ranked**. If not enough peo
 **Hider items:** 👣 Decoy (fake ripples) · 💨 Smoke (blocks flashlights) · 🥿 Soft shoes (silent sprint) · 💤 Calm (hides your heartbeat)
 **Seeker items:** 🔥 Flare (lights an area) · 🪤 Noise trap (hidden mine) · 🔦 Wide beam (140° cone) · 📡 Echo (reveals nearby heartbeats)
 
+**Your look:** click *Edit look* (home) or *Change look* (lobby) to pick a color and one of 16 hand-drawn faces. Colors are unique in every game. If someone in the lobby already has your color, you get a free one for that game (the earlier player keeps theirs) and the lobby tells you. Taken colors can't be picked there.
+
 Quick-chat: keys `1`–`8` in game, or the buttons in the lobby. `Tab` shows the scoreboard. `Esc` opens the menu (leave, or pause in custom games).
 
 ## Ranked & ELO
