@@ -253,7 +253,7 @@ export class GameSession {
 
   saveSnapshot() {
     this.lastSnapshot = this.game.state.time;
-    this.hub.repos.snapshots.upsert(this.id, this.snapshotDoc()).catch((e) => console.error('[session] snapshot', e.message));
+    return this.hub.repos.snapshots.upsert(this.id, this.snapshotDoc()).catch((e) => console.error('[session] snapshot', e.message));
   }
 
   // ---------------- pause / save (custom only) ----------------

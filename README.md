@@ -62,6 +62,10 @@ To keep lobbies full at every rating, the server runs **personas**. These are AI
 - **Admin dashboard:** `/admin` (also `/api/admin/stats`), only for accounts listed in `ADMIN_USERS`. Everyone else gets a 404. It shows training progress, fitness, league ratings, imitation loss, idle-time use, persona population and win rates per rating band.
 - **Manual training:** `npm run train -- --generations 10 --games 3`
 
+## Deployment
+
+Releases deploy themselves. Publishing a GitHub release builds `ghcr.io/tanglemesh/hide-n-seek:<tag>`, and the Mac mini's updater installs it once no game is running. It runs as its own compose stack on port 8081, next to castle-defense. Setup, tunnel, backups and rollback are in **[docs/deploy.md](docs/deploy.md)**.
+
 ## Architecture
 
 ```
@@ -97,6 +101,7 @@ To add another document database, implement that contract in `server/data/<drive
 | `ADMIN_USERS` | – | comma-separated account names allowed to see `/admin` |
 | `TRAINING` | on | `off` disables idle-time training |
 | `MIN_PERSONAS` | `24` | starting persona population |
+| `TRAINING_MAX_MB` | – | heap cap for the training worker (it restarts on its own) |
 | `RECORD_SAMPLES` | on | `off` stops recording imitation samples from human games |
 | `ROUND_SECONDS`, `HEADSTART_SECONDS`, `MM_FILL_AFTER=lo,hi` | – | testing overrides |
 

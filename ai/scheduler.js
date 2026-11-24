@@ -26,6 +26,17 @@ export class TrainingScheduler {
     const st = (await this.repos.training.getState()) || {};
     this.stats.gamesSimulated = st.gamesSimulated || 0;
     this.stats.generation = st.generation || 0;
+    this.stats.restarts = 0;
+    await this.spawnWorker();
+    this.setRunning(!this.hub?.isBusy());
+    this.hub?.onActivity((busy) => this.onActivity(busy));
+    this.flushTimer = setInterval(() => this.persist(), 30_000);
+    this.flushTimer.unref?.();
+  }
+
+  // The worker's heap is capped (TRAINING_MAX_MB) so it can never starve the game server; if it dies
+  // (out of memory, bug) only the worker restarts, from the latest checkpoint, after a short back-off.
+  async spawnWorker() {
     const champ = this.pool.championDoc();
     const latest = (await this.repos.botModels.all()).at(-1);
     const workerData = {
@@ -36,17 +47,25 @@ export class TrainingScheduler {
       generation: this.stats.generation,
       opts: this.opts,
     };
-    this.worker = new Worker(fileURLToPath(new URL('./train/worker.js', import.meta.url)), { workerData });
-    this.worker.on('message', (m) => this.onMessage(m).catch((e) => console.error('[train]', e)));
-    this.worker.on('error', (e) => {
+    const maxMb = +(process.env.TRAINING_MAX_MB || 0);
+    const worker = new Worker(fileURLToPath(new URL('./train/worker.js', import.meta.url)), {
+      workerData,
+      ...(maxMb > 0 ? { resourceLimits: { maxOldGenerationSizeMb: maxMb } } : {}),
+    });
+    this.worker = worker;
+    worker.on('message', (m) => this.onMessage(m).catch((e) => console.error('[train]', e)));
+    worker.on('error', (e) => {
       this.stats.lastError = e.message;
       console.error('[train] worker error', e);
     });
-    this.worker.unref();
-    this.setRunning(!this.hub?.isBusy());
-    this.hub?.onActivity((busy) => this.onActivity(busy));
-    this.flushTimer = setInterval(() => this.persist(), 30_000);
-    this.flushTimer.unref?.();
+    worker.on('exit', (code) => {
+      if (this.stopping || this.worker !== worker) return;
+      this.stats.restarts++;
+      console.error(`[train] worker exited (${code}), restarting in 30 s`);
+      this.restartTimer = setTimeout(() => this.spawnWorker().catch((e) => console.error('[train] restart', e)), 30_000);
+      this.restartTimer.unref?.();
+    });
+    worker.unref();
   }
 
   onActivity(busy) {
@@ -120,7 +139,9 @@ export class TrainingScheduler {
   }
 
   async stop() {
+    this.stopping = true;
     clearInterval(this.flushTimer);
+    clearTimeout(this.restartTimer);
     await this.persist();
     await this.worker?.terminate();
   }

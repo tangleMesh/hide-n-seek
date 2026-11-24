@@ -1,3 +1,6 @@
+# Development setup (sbx container). The live server uses deploy/docker-compose.yml.
+#   docker compose up -d mongo                      → MongoDB only; run the server with `npm start`
+#   docker compose --profile app up -d --build      → MongoDB + the server image on :${HOST_PORT:-3000}
 services:
   mongo:
     image: mongo:8
@@ -6,18 +9,30 @@ services:
       - "27017:27017"
     volumes:
       - hush-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   hush:
     build: .
     restart: unless-stopped
-    depends_on: [mongo]
+    init: true
+    profiles: [app]
     environment:
       MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: hush
       PORT: "3000"
       ADMIN_USERS: ${ADMIN_USERS:-}
+      TRAINING: ${TRAINING:-on}
     ports:
-      - "3000:3000"
-    profiles: [app]
+      - "${HOST_PORT:-3000}:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # time to snapshot running games on shutdown
+    stop_grace_period: 20s
 
 volumes:
   hush-mongo-data:

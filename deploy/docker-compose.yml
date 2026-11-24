@@ -1,0 +1,71 @@
+# Live deployment (Mac mini, next to castle-defense). Not the dev setup in the repository root.
+#   cd deploy && docker compose up -d
+# The server image comes from GitHub releases (ghcr.io). update.sh switches HUSH_VERSION in .env
+# when a new release is published. Only Cloudflare Tunnel exposes the game, since the port is bound
+# to localhost. HUSH runs as its own compose project with its own MongoDB and volumes, so it never
+# touches castle-defense's containers or data.
+name: hush-live
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    # The Mac mini is shared, so cap MongoDB's cache (by default it would take about half the host RAM).
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  server:
+    image: ${HUSH_IMAGE:-ghcr.io/tanglemesh/hide-n-seek}:${HUSH_VERSION:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: ${MONGO_DB:-hush}
+      PORT: "3000"
+      ADMIN_USERS: ${ADMIN_USERS:-}
+      TRAINING: ${TRAINING:-on}
+      TRAINING_MAX_MB: ${TRAINING_MAX_MB:-256}
+      MIN_PERSONAS: ${MIN_PERSONAS:-24}
+    ports:
+      - "127.0.0.1:${HOST_PORT:-8081}:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    # Running games are snapshotted on shutdown: ranked games resume, custom games become saved games.
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Database backup to AWS S3 every BACKUP_INTERVAL_HOURS (weekly by default).
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      MONGO_DB: ${MONGO_DB:-hush}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-168}
+      BACKUP_KEEP: ${BACKUP_KEEP:-12}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_PREFIX: ${S3_PREFIX:-hush}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-central-1}
+    volumes:
+      - backup-state:/state
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
+  backup-state:

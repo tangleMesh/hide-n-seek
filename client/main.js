@@ -31,6 +31,8 @@ function toast(text, actions = []) {
   setTimeout(() => t.remove(), actions.length ? 20000 : 4500);
 }
 
+fetch('/api/health').then((r) => r.json()).then((h) => { if (h.version) document.getElementById('version').textContent = 'v' + h.version; }).catch(() => {});
+
 async function api(path, body) {
   const r = await fetch(path, {
     method: body ? 'POST' : 'GET',

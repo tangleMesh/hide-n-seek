@@ -1,0 +1,10 @@
+[Unit]
+Description=HUSH: install a new GitHub release if there is one
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# install.sh replaces these with the real path and user.
+User=__USER__
+ExecStart=__DEPLOY_DIR__/update.sh

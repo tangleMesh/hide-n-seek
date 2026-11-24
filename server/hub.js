@@ -65,9 +65,23 @@ export class Hub {
     this.activityListeners = new Set();
   }
 
-  stop() {
+  // Shutdown (deploy/restart): write a fresh snapshot of every running game, so ranked games resume
+  // right where they were and custom games become saved games (see recover()).
+  async stop() {
     this.matchmaker.stop();
-    for (const s of this.sessions.values()) s.stop();
+    const writes = [];
+    for (const s of this.sessions.values()) {
+      if (!s.ended) writes.push(s.saveSnapshot());
+      s.stop();
+    }
+    await Promise.all(writes);
+  }
+
+  // Games with at least one human still in them (the updater waits for these to finish).
+  liveMatches() {
+    let n = 0;
+    for (const s of this.sessions.values()) if (!s.ended && s.humans().some((h) => !h.left)) n++;
+    return n;
   }
 
   // ---------------- transport ----------------

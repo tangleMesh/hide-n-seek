@@ -14,6 +14,7 @@ import { TrainingScheduler } from '../ai/scheduler.js';
 import { handleAdmin } from '../admin/routes.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const VERSION = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8')).version;
 const STATIC = { '/client/': 'client', '/shared/': 'shared', '/maps/': 'maps' };
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
@@ -102,7 +103,9 @@ export async function createServer(opts = {}) {
         const u = await userFromToken(repos, tokenFromRequest(req));
         return json(res, 200, { list: hub.onlineList(u?._id) });
       }
-      if (p === '/health') return json(res, 200, { ok: true, sessions: hub.sessions.size });
+      if (p === '/health' || p === '/api/health') {
+        return json(res, 200, { ok: true, version: VERSION, liveMatches: hub.liveMatches(), sessions: hub.sessions.size });
+      }
       // static
       let file;
       if (p === '/' || p === '/index.html') file = path.join(ROOT, 'client', 'index.html');
@@ -167,7 +170,7 @@ export async function createServer(opts = {}) {
 
   const close = async () => {
     clearInterval(heartbeat);
-    hub.stop();
+    await hub.stop();
     personas.stop();
     pool.stop();
     await scheduler.stop();
@@ -183,8 +186,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   const host = process.env.HOST || '0.0.0.0';
   const app = await createServer();
   app.server.listen(port, host, () => console.log(`HUSH listening on http://${host}:${port} (db: ${process.env.DB_DRIVER || 'mongo'})`));
+  let shuttingDown = false;
   const shutdown = async () => {
-    console.log('shutting down…');
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log('shutting down: saving running games…');
     await app.close();
     process.exit(0);
   };

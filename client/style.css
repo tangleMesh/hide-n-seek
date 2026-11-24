@@ -105,6 +105,9 @@ td.num, th.num { text-align: right; }
 .toast span { flex: 1; }
 .conn { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: #3a1719; color: #ffb3b3; padding: 6px 14px; border-radius: 99px; z-index: 60; }
 .custom-only.hide-ranked { display: none; }
+.version { position: fixed; right: 8px; bottom: 6px; font-size: 11px; color: var(--mute); opacity: 0.6; pointer-events: none; z-index: 5; }
+#screen-game.active ~ .version { display: none; }
+
 @media (max-width: 640px) {
   .logo { font-size: 40px; }
   .bars { width: 130px; }
