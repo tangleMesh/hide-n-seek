@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+- Item help in game: picking up an item shows a short card (what it does, how to use it, a tip) above the item slot. It shrinks to a small label after a few seconds, and stays longer the first time you see an item. `I` shows the full card again.
+- New **Guide** (start page and in-game menu): how item pads work, every hider and seeker item with range, duration and tips, and all controls.
+- Fix: in the first game after loading the page, every key press could be handled twice. `Esc` did nothing and quick-chat messages went out twice.
+
 ## 0.1.2
 - Pick your color and one of 16 hand-drawn faces (happy, grin, wink, cool, in love, silly, shocked, nervous, sleepy, meh, sad, angry, furious, evil, dizzy, smug). Faces show in game, lobby, leaderboard, online list and scoreboard.
 - Colors are unique within every lobby and game. Whoever was there first keeps their color, later players with the same color get a free one (with a notice), and taken colors can't be picked in the lobby.

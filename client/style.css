@@ -130,6 +130,31 @@ td.num, th.num { text-align: right; }
 .face-grid img { width: 100%; height: auto; display: block; }
 @media (max-width: 480px) { .swatches, .face-grid { grid-template-columns: repeat(4, 1fr); } .look-btn span { display: none; } }
 
+/* in-game item explanation */
+.item-info { position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%); background: rgba(10,12,18,.72); border: 1px solid rgba(255,209,102,.35); border-radius: 10px; padding: 4px 12px; font-size: 13px; color: #dfe4ee; white-space: nowrap; max-width: calc(100vw - 32px); }
+.item-info.full { white-space: normal; width: min(380px, calc(100vw - 32px)); padding: 10px 14px; display: grid; gap: 4px; animation: pop .18s ease-out; }
+.item-info .ii-title { font-size: 15px; display: flex; gap: 8px; align-items: center; }
+.item-info .ii-key { margin-left: auto; font-size: 11px; border: 1px solid #4a536a; border-radius: 6px; padding: 0 6px; color: var(--accent); }
+.item-info .ii-tip { color: var(--mute); font-size: 12px; }
+.item-info .ii-more { color: rgba(255,255,255,.4); font-size: 11px; margin-left: 6px; }
+@keyframes pop { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* guide */
+.guide-link { font-size: 13px; text-transform: none; letter-spacing: 0; padding: 2px 8px; margin-left: 6px; color: var(--accent2); }
+.guide { width: min(720px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; display: grid; gap: 14px; }
+#guide-body { display: grid; gap: 20px; }
+.guide-head { display: flex; justify-content: space-between; align-items: center; }
+.guide-head h2 { margin: 0; }
+.guide h3 { margin: 0 0 8px; font-size: 15px; }
+.g-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.g-item { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.g-icon { font-size: 30px; line-height: 44px; text-align: center; background: var(--panel2); border-radius: 10px; height: 44px; }
+.g-name { font-weight: 700; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.g-fact { font-weight: 500; font-size: 11px; color: var(--mute); border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; }
+.g-item p { margin: 3px 0 0; font-size: 14px; }
+.g-keys { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px; font-size: 14px; }
+kbd { display: inline-block; min-width: 1.6em; text-align: center; border: 1px solid #4a536a; border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; font: 12px/1.6 ui-monospace, monospace; margin-right: 2px; background: var(--panel2); }
+
 @media (max-width: 640px) {
   .logo { font-size: 40px; }
   .bars { width: 130px; }

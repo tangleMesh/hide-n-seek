@@ -41,7 +41,7 @@
         <div id="saved-games"></div>
       </div>
       <div class="card how">
-        <h2>How to play</h2>
+        <h2>How to play <button class="ghost guide-link" id="btn-guide">📖 Guide &amp; items</button></h2>
         <ul class="rules">
           <li><b>Hiders</b> are invisible in the dark. <b>Seekers</b> only see what their flashlight shows.</li>
           <li>Every step makes <b>noise ripples</b> that the other side can see. <kbd>Shift</kbd> to sneak silently, <kbd>Space</kbd> to sprint (loud).</li>
@@ -105,6 +105,7 @@
       </div>
       <div id="hud-center" class="hud-center"></div>
       <div id="hud-feed" class="feed"></div>
+      <div id="hud-item-info" class="item-info hidden"></div>
       <div class="hud-bottom">
         <div class="item-slot" id="hud-item" title="E / click to use"></div>
         <div class="bars">
@@ -114,7 +115,7 @@
         <div class="heart" id="hud-heart">♥</div>
       </div>
       <div class="hud-chat" id="hud-chat"></div>
-      <div class="hint-keys">WASD move · Shift sneak · Space sprint · E use · Right-click mark · 1-8 chat · Tab scores · Esc menu</div>
+      <div class="hint-keys">WASD move · Shift sneak · Space sprint · E use · I item info · Right-click mark · 1-8 chat · Tab scores · Esc menu</div>
     </div>
     <div id="scoreboard" class="overlay hidden"><div class="card"><h2>Players</h2><table id="score-table"></table></div></div>
     <div id="menu" class="overlay hidden">
@@ -122,6 +123,7 @@
         <h2>Menu</h2>
         <button id="menu-resume">Back to game</button>
         <button id="menu-pause" class="custom-only host-only">Pause game</button>
+        <button id="menu-guide">Guide &amp; items</button>
         <button id="menu-leave" class="danger">Leave game</button>
         <p class="mute" id="menu-note"></p>
       </div>
@@ -148,6 +150,13 @@
       <h3>Face</h3>
       <div id="look-faces" class="face-grid"></div>
       <div class="row"><button class="primary" id="look-save">Save</button><button id="look-cancel">Cancel</button></div>
+    </div>
+  </div>
+
+  <div id="guide" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="card guide">
+      <div class="guide-head"><h2 id="guide-title">Guide</h2><button class="ghost" id="guide-close" aria-label="Close">✕</button></div>
+      <div id="guide-body"></div>
     </div>
   </div>
 

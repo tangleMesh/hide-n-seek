@@ -1,7 +1,7 @@
 // App shell: auth, home, lobby, queue, game lifecycle, invites, toasts.
 import { Net } from './net.js';
 import { GameView, escapeHtml } from './game.js';
-import { QUICK_CHAT, COLORS } from '/shared/constants.js';
+import { QUICK_CHAT, COLORS, ITEMS, PAD_RESPAWN } from '/shared/constants.js';
 import { sfx } from './audio.js';
 import { avatarHTML, avatarURL, drawAvatar, FACES, FACE_LABELS } from './faces.js';
 
@@ -233,6 +233,74 @@ net.on('me', (m) => {
   if (state.lobby) renderLobby(state.lobby);
 });
 
+// ---------------- guide (items, pads, controls) ----------------
+function itemFacts(it) {
+  const f = [];
+  if (it.aim) f.push(`aimed · up to ${it.range} tiles`);
+  else if (it.key !== 'trap') f.push('on yourself');
+  if (it.duration && it.duration >= 2) f.push(`${it.duration} s`);
+  if (it.lifetime) f.push(`lasts ${it.lifetime} s`);
+  if (it.radius && it.radius >= 2) f.push(`${it.radius}-tile radius`);
+  return f;
+}
+
+function itemCards(side) {
+  return Object.entries(ITEMS).filter(([, it]) => it.side === side).map(([key, it]) => `
+    <div class="g-item">
+      <div class="g-icon" aria-hidden="true">${it.icon}</div>
+      <div><div class="g-name">${it.name} ${itemFacts({ ...it, key }).map((x) => `<span class="g-fact">${x}</span>`).join('')}</div>
+      <p>${it.how}</p><p class="mute">💡 ${it.tip}</p></div>
+    </div>`).join('');
+}
+
+function renderGuide() {
+  $('guide-body').innerHTML = `
+    <section>
+      <h3>Items: how they work</h3>
+      <ul class="g-list">
+        <li>Items lie on <b>glowing pads</b> at fixed spots on the map. Hiders have blue pads and seekers yellow ones. You can only pick up your own side's items, and the other side's pads look faded.</li>
+        <li>Walk over a pad to pick its item up. You carry <b>one item</b> at a time, and a full hand leaves the pad alone.</li>
+        <li>An empty pad comes back <b>${PAD_RESPAWN} s</b> after a pickup. Its timer is visible, so plan your route around it.</li>
+        <li>Use your item with <kbd>E</kbd> or a left click. Aimed items land where your mouse points, within their range.</li>
+        <li>In a game, <kbd>I</kbd> shows the explanation of the item you're carrying.</li>
+        <li>If you are caught, you lose the item you carry. From then on you're a seeker and can use the yellow pads.</li>
+      </ul>
+    </section>
+    <section>
+      <h3>🫣 Hider items</h3>
+      ${itemCards('hider')}
+    </section>
+    <section>
+      <h3>🔦 Seeker items</h3>
+      ${itemCards('seeker')}
+    </section>
+    <section>
+      <h3>Controls</h3>
+      <ul class="g-keys">
+        <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</li>
+        <li><kbd>Shift</kbd> sneak: quiet, uses stamina</li>
+        <li><kbd>Space</kbd> sprint: fast, loud, uses stamina</li>
+        <li><kbd>E</kbd> / left click: use item</li>
+        <li><kbd>I</kbd> item info</li>
+        <li>Right click: mark a spot for your seeker team</li>
+        <li><kbd>1</kbd>–<kbd>8</kbd> quick chat</li>
+        <li><kbd>Tab</kbd> scoreboard · <kbd>Esc</kbd> menu</li>
+      </ul>
+    </section>`;
+}
+
+function openGuide() {
+  renderGuide();
+  $('guide').classList.remove('hidden');
+  $('guide-close').focus();
+}
+const closeGuide = () => $('guide').classList.add('hidden');
+$('btn-guide').onclick = openGuide;
+$('menu-guide').onclick = openGuide;
+$('guide-close').onclick = closeGuide;
+$('guide').onclick = (e) => { if (e.target.id === 'guide') closeGuide(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('guide').classList.contains('hidden')) closeGuide(); });
+
 function refreshLobbyOnline() {
   net.send({ t: 'online:list' });
 }
@@ -292,11 +360,22 @@ net.on('game:start', async (m) => {
     if (!m.paused) { state.game.paused = false; $('paused').classList.add('hidden'); }
     return;
   }
+  // The server can send game:start twice in a row (start broadcast + reconnect). While the map is still
+  // loading, only remember the newest message: building a second GameView would double every key press.
+  if (state.startingGame?.gameId === m.gameId) {
+    state.startingGame = m;
+    return;
+  }
+  state.startingGame = m;
   state.game?.destroy();
+  state.game = null;
   const mapDef = await loadMapDef(m.mapId);
+  const start = state.startingGame;
+  if (start?.gameId !== m.gameId) return; // another game started meanwhile
+  state.startingGame = null;
   show('game');
-  state.game = new GameView({ net, mapDef, start: m, myId: state.user.id });
-  if (m.paused) state.game.onEvent({ type: 'paused' });
+  state.game = new GameView({ net, mapDef, start, myId: state.user.id });
+  if (start.paused) state.game.onEvent({ type: 'paused' });
 });
 net.on('snap', (m) => state.game?.onSnap(m));
 net.on('event', (m) => state.game?.onEvent(m.ev));

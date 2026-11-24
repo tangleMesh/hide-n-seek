@@ -42,15 +42,48 @@ export const VISION = {
 
 export const ITEM_PICKUP_RADIUS = 0.8;
 
+// how: what pressing E does; tip: when it's worth using. aim: the item goes where the mouse points (within range).
 export const ITEMS = {
-  decoy: { side: 'hider', icon: '👣', name: 'Decoy', desc: 'Fake noise ripples where you aim', range: 9 },
-  smoke: { side: 'hider', icon: '💨', name: 'Smoke', desc: 'Cloud that blocks flashlights (6s)', range: 4, radius: 2.5, duration: 6 },
-  softshoes: { side: 'hider', icon: '🥿', name: 'Soft shoes', desc: 'Silent sprint for 5s', duration: 5 },
-  calm: { side: 'hider', icon: '💤', name: 'Calm', desc: 'Resets & hides your heartbeat (20s)', duration: 20 },
-  flare: { side: 'seeker', icon: '🔥', name: 'Flare', desc: 'Lights up an area (4s)', range: 10, radius: 5, duration: 4 },
-  trap: { side: 'seeker', icon: '🪤', name: 'Noise trap', desc: 'Hidden mine: loud ripple + slow', lifetime: 90, radius: 0.7 },
-  widebeam: { side: 'seeker', icon: '🔦', name: 'Wide beam', desc: '140° flashlight for 8s', duration: 8 },
-  echo: { side: 'seeker', icon: '📡', name: 'Echo', desc: 'Reveal heartbeats nearby (1s)', radius: 12, duration: 1.2 },
+  decoy: {
+    side: 'hider', icon: '👣', name: 'Decoy', desc: 'Fake noise ripples where you aim', range: 9, aim: true,
+    how: 'Aim with the mouse and press E: three fake footsteps appear there (up to 9 tiles away).',
+    tip: 'Throw it away from where you are going, to pull seekers off your trail.',
+  },
+  smoke: {
+    side: 'hider', icon: '💨', name: 'Smoke', desc: 'Cloud that blocks flashlights (6s)', range: 4, radius: 2.5, duration: 6, aim: true,
+    how: 'Aim and press E: a smoke cloud (up to 4 tiles away) blocks flashlights and sight for 6 s.',
+    tip: 'Drop it between you and a seeker, then slip away.',
+  },
+  softshoes: {
+    side: 'hider', icon: '🥿', name: 'Soft shoes', desc: 'Silent sprint for 5s', duration: 5,
+    how: 'Press E: for 5 s your steps make no noise, even when sprinting.',
+    tip: 'Save it for crossing gravel, water or open ground.',
+  },
+  calm: {
+    side: 'hider', icon: '💤', name: 'Calm', desc: 'Resets & hides your heartbeat (20s)', duration: 20,
+    how: 'Press E: your heartbeat resets and stays hidden for 20 s (Echo can\'t find you either).',
+    tip: 'Use it to stay in a great hiding spot a bit longer, or during the Final Hush.',
+  },
+  flare: {
+    side: 'seeker', icon: '🔥', name: 'Flare', desc: 'Lights up an area (4s)', range: 10, radius: 5, duration: 4, aim: true,
+    how: 'Aim and press E: lights up an area (up to 10 tiles away) for 4 s. Every hider in the light is visible.',
+    tip: 'Throw it where you just saw ripples.',
+  },
+  trap: {
+    side: 'seeker', icon: '🪤', name: 'Noise trap', desc: 'Hidden mine: loud ripple + slow', lifetime: 90, radius: 0.7,
+    how: 'Press E to drop it where you stand. Hiders can\'t see it: the first one to step on it makes a loud ripple and is slowed.',
+    tip: 'Place it in doorways and narrow paths. It lasts 90 s.',
+  },
+  widebeam: {
+    side: 'seeker', icon: '🔦', name: 'Wide beam', desc: '140° flashlight for 8s', duration: 8,
+    how: 'Press E: your flashlight widens to 140° for 8 s.',
+    tip: 'Great for sweeping big rooms or the garden.',
+  },
+  echo: {
+    side: 'seeker', icon: '📡', name: 'Echo', desc: 'Reveal heartbeats nearby (1s)', radius: 12, duration: 1.2,
+    how: 'Press E: briefly shows every hider\'s heartbeat within 12 tiles. Hiders using Calm stay hidden, and hiders see the pulse.',
+    tip: 'Use it in the middle of an area where you think someone is hiding.',
+  },
 };
 export const ITEM_KEYS = Object.keys(ITEMS);
 export const PAD_RESPAWN = 35;

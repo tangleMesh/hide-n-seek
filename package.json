@@ -1,6 +1,6 @@
 {
   "name": "hush",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "HUSH - a Noise & Shadow hide'n'seek party game for 6-16 players (Node + WebSockets + Canvas)",
   "type": "module",
   "private": true,

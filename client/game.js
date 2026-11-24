@@ -6,6 +6,14 @@ import { Renderer } from './render.js';
 import { sfx } from './audio.js';
 import { avatarHTML } from './faces.js';
 
+const modalOpen = () => !!document.querySelector('.modal:not(.hidden)');
+function readSeenItems() {
+  try { return new Set(JSON.parse(localStorage.getItem('hush_seen_items') || '[]')); } catch { return new Set(); }
+}
+function writeSeenItems(set) {
+  try { localStorage.setItem('hush_seen_items', JSON.stringify([...set])); } catch {}
+}
+
 const $ = (id) => document.getElementById(id);
 
 export class GameView {
@@ -47,6 +55,7 @@ export class GameView {
   bind() {
     this.onKeyDown = (e) => {
       if (e.target.tagName === 'INPUT') return;
+      if (modalOpen()) return; // the guide is open on top of the game
       const k = e.key.toLowerCase();
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift', 'tab'].includes(k)) e.preventDefault();
       if (k === 'tab') {
@@ -54,6 +63,7 @@ export class GameView {
         $('scoreboard').classList.remove('hidden');
       } else if (k === 'escape') this.toggleMenu();
       else if (k === 'e') this.useItem();
+      else if (k === 'i' && !e.repeat) this.toggleItemInfo();
       else if (/^[1-8]$/.test(k)) this.net.send({ t: 'chat', i: +k - 1 });
       this.keys.add(k);
       sfx.unlock();
@@ -67,6 +77,7 @@ export class GameView {
       this.mouse = { x: e.clientX, y: e.clientY };
     };
     this.onMouseDown = (e) => {
+      if (modalOpen()) return;
       sfx.unlock();
       if (e.button === 0) this.useItem();
       if (e.button === 2) {
@@ -211,6 +222,7 @@ export class GameView {
     slot.textContent = you.item ? ITEMS[you.item].icon : '';
     slot.title = you.item ? `${ITEMS[you.item].name}: ${ITEMS[you.item].desc}` : 'No item: walk over a glowing pad';
     slot.classList.toggle('has', !!you.item);
+    this.updateItemInfo(you.item);
     $('hud-stamina').style.width = `${you.stamina}%`;
     const eff = [];
     if (you.softLeft > 0) eff.push(`🥿 ${Math.ceil(you.softLeft)}s`);
@@ -221,6 +233,46 @@ export class GameView {
     if (you.role === 'hider' && you.heartbeatIn !== null && you.heartbeatIn < 8) eff.push(`<span class="warn">♥ pulses in ${Math.ceil(you.heartbeatIn)}s, move!</span>`);
     $('hud-effects').innerHTML = eff.map((e) => (e.startsWith('<') ? e : `<span>${e}</span>`)).join('');
     $('hud-heart').classList.toggle('off', you.role !== 'hider');
+  }
+
+  // Item explanation above the slot: the full card right after a pickup (longer the first time you ever get
+  // that item), then just a small label so it doesn't get in the way. I shows the full card again.
+  updateItemInfo(item) {
+    const now = performance.now();
+    if (item !== this.infoItem) {
+      this.infoItem = item;
+      this.infoPinned = false;
+      if (item) {
+        const seen = readSeenItems();
+        this.infoUntil = now + (seen.has(item) ? 4000 : 9000);
+        seen.add(item);
+        writeSeenItems(seen);
+      }
+    }
+    const el = $('hud-item-info');
+    if (!item) {
+      el.classList.add('hidden');
+      return;
+    }
+    const it = ITEMS[item];
+    const full = this.infoPinned || now < this.infoUntil;
+    const mode = full ? 'full' : 'compact';
+    if (el.dataset.mode !== mode || el.dataset.item !== item) {
+      el.dataset.mode = mode;
+      el.dataset.item = item;
+      el.classList.toggle('full', full);
+      el.innerHTML = full
+        ? `<div class="ii-title">${it.icon} <b>${it.name}</b>${it.aim ? '<span class="ii-key">aim + E</span>' : '<span class="ii-key">E</span>'}</div><div class="ii-how">${it.how}</div><div class="ii-tip">💡 ${it.tip}</div>`
+        : `${it.icon} <b>${it.name}</b> · ${it.aim ? 'aim + E' : 'E to use'} <span class="ii-more">I: info</span>`;
+    }
+    el.classList.remove('hidden');
+  }
+
+  toggleItemInfo() {
+    if (!this.infoItem) return;
+    this.infoPinned = !(this.infoPinned || performance.now() < this.infoUntil);
+    this.infoUntil = 0;
+    this.updateItemInfo(this.infoItem);
   }
 
   feed(html) {
