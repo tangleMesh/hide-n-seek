@@ -42,6 +42,7 @@ Quick-chat: keys `1`–`8` in game, or the buttons in the lobby. `Tab` shows the
 
 - Everyone starts at 1000. K = 40 for the first 10 games, 24 after that. Your opponent strength is the average rating of the side you started against.
 - Starting seekers score the share of hiders caught. Hiders score 1 if they survive. If caught, they score `0.4 × survived time` plus a bonus per catch as a Shade, capped at 0.6.
+- **Groups:** up to 4 players can queue for ranked together from a lobby (*🏆 Ranked as group*). A group is matched at a rating between its average and its best player, always plays in the same match, and solo players start as seekers before group members.
 - Leaving a ranked match gives you the worst score for it. After 3 leaves in 24 h you get a 10-minute queue cooldown.
 
 ## Connection & persistence

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- **Ranked as a group:** create a lobby with up to 4 friends, everyone gets ready, and the host clicks *🏆 Ranked as group*. The group searches together, always lands in the same match, and returns to its lobby afterwards.
+  - Groups are matched at a rating between their average and their best player, so a strong player can't pull friends into easy games.
+  - Solo players start as seekers before group members, so nobody seeks their own friends and goes easy on them.
+  - If any member stops the search, un-readies, leaves or is kicked, the search stops for the whole group.
+
 ## 0.1.3
 - Item help in game: picking up an item shows a short card (what it does, how to use it, a tip) above the item slot. It shrinks to a small label after a few seconds, and stays longer the first time you see an item. `I` shows the full card again.
 - New **Guide** (start page and in-game menu): how item pads work, every hider and seeker item with range, duration and tips, and all controls.
