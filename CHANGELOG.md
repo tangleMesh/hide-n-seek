@@ -1,13 +1,9 @@
 # Changelog
 
-## 0.2.0
-- Live deployment: release workflow (image on ghcr.io for amd64 + arm64) and `deploy/` (compose stack, auto-updater, S3 backups) for the Mac mini next to castle-defense. See `docs/deploy.md`.
-- `/api/health` reports `version` and `liveMatches`. The version is shown in the corner of the menus.
-- Shutdown snapshots every running game first, so ranked games resume and custom games become saved games after an update.
-- The training worker has a heap cap (`TRAINING_MAX_MB`) and restarts on its own if it dies.
-
-## 0.1.1
-- Closer camera, quieter footsteps, and sneaking now costs stamina.
-
 ## 0.1.0
-- First version of HUSH.
+First release of HUSH, a Noise & Shadow hide'n'seek party game for 6–16 players.
+- Real-time server-authoritative game: flashlight cones, noise ripples, heartbeats, Final Hush, fixed item pads (4 hider and 4 seeker items).
+- Ranked queue with ELO and leaderboard, custom lobbies with invites, pause/save/resume.
+- Disconnect grace with AI stand-in, crash snapshots and recovery.
+- AI players with their own personalities, learning from human games and idle-time self-play. Owner-only `/admin` dashboard.
+- Live deployment: release workflow (image on ghcr.io for amd64 + arm64) and `deploy/` (compose stack, auto-updater, S3 backups). See `docs/deploy.md`.

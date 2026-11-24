@@ -47,7 +47,7 @@ Or in the browser: GitHub → **Add file → Create new file**, path `.github/wo
 **Create the release.** `package.json` `"version"` should match the tag, since the game shows it in the lower-right corner:
 
 ```bash
-gh release create v0.2.0 --title "v0.2.0" --generate-notes
+gh release create v0.1.0 --title "v0.1.0" --generate-notes
 ```
 
 The workflow runs the tests and builds the image. This takes about 5–10 minutes; there is no build step, so arm64 under emulation is quick.
@@ -66,7 +66,7 @@ nano deploy/.env             # ADMIN_USERS, S3_BUCKET, AWS_* (you can copy the v
 ./deploy/install.sh          # second run: installs the update timer, pulls the latest release, starts everything
 ```
 
-The second run ends with the health check, e.g. `{"ok":true,"version":"0.2.0","liveMatches":0,"sessions":0}`, and the container list (mongo, server, backup).
+The second run ends with the health check, e.g. `{"ok":true,"version":"0.1.0","liveMatches":0,"sessions":0}`, and the container list (mongo, server, backup).
 
 Then register the account named in `ADMIN_USERS` (e.g. `jay`) in the game. `/admin` shows the bot training dashboard to that account only.
 
@@ -155,7 +155,7 @@ docker compose run --rm --entrypoint bash backup -c \
 docker compose restart server
 ```
 
-**Roll back:** set `HUSH_VERSION=v0.2.0` and `AUTO_UPDATE=0` in `.env`, then run `docker compose up -d`. Set `AUTO_UPDATE=1` again once a fixed release is out.
+**Roll back:** set `HUSH_VERSION=v0.1.0` and `AUTO_UPDATE=0` in `.env`, then run `docker compose up -d`. Set `AUTO_UPDATE=1` again once a fixed release is out.
 
 **Stop or start:** `docker compose down` / `docker compose up -d`. The data stays in the volume. Never run `down -v` on the live server, because it deletes the database.
 
