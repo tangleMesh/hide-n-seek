@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+- Idle-time bot training only runs in production (`NODE_ENV=production`, set by the Docker image). `TRAINING=on|off` still overrides it, and the dev Docker stack keeps it off.
+
 ## 0.1.0
 First release of HUSH, a Noise & Shadow hide'n'seek party game for 6–16 players.
 - Real-time server-authoritative game: flashlight cones, noise ripples, heartbeats, Final Hush, fixed item pads (4 hider and 4 seeker items).
