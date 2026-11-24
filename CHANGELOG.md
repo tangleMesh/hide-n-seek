@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 - Pick your color and one of 16 hand-drawn faces (happy, grin, wink, cool, in love, silly, shocked, nervous, sleepy, meh, sad, angry, furious, evil, dizzy, smug). Faces show in game, lobby, leaderboard, online list and scoreboard.
 - Colors are unique within every lobby and game. Whoever was there first keeps their color, later players with the same color get a free one (with a notice), and taken colors can't be picked in the lobby.
 
