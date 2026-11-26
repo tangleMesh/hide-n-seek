@@ -88,6 +88,11 @@ export const ITEMS = {
 export const ITEM_KEYS = Object.keys(ITEMS);
 export const PAD_RESPAWN = 35;
 
+// Ranked: the last LATE_CATCH_COUNT hiders to be caught get a small plus, if they were caught within the
+// last LATE_CATCH_WINDOW seconds of the round. Every other caught hider loses points (less the later).
+export const LATE_CATCH_COUNT = 2;
+export const LATE_CATCH_WINDOW = 120;
+
 export const MARKER_TTL = 6;
 
 export const QUICK_CHAT = ['gg', 'nooo', 'how??', 'nice one', 'camper!', 'lag…', 'one more!', 'gl hf', '😤', '😂', '👀', '🫣'];

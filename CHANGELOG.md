@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+- Ranked points for caught hiders:
+  - The later you are caught, the fewer points you lose (equal ratings: about −12 when caught right away, −3 after 4 minutes). It's always a minus, Shade catches only soften it.
+  - The last 2 hiders caught get a small plus (about +3 for the last one, +2 for the one before), but only if they were caught in the last 2 minutes of the round.
+
 ## 0.1.4
 - **Ranked as a group:** create a lobby with up to 4 friends, everyone gets ready, and the host clicks *🏆 Ranked as group*. The group searches together, always lands in the same match, and returns to its lobby afterwards.
   - Groups are matched at a rating between their average and their best player, so a strong player can't pull friends into easy games.

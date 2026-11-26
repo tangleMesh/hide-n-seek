@@ -322,11 +322,13 @@ export class GameSession {
     this.stop();
     const g = this.game;
     const scores = g.scores();
+    const catches = g.catchInfo();
     const parts = [...this.p.values()];
     for (const part of parts) if (part.left && part.kind === 'human') scores[part.id] = 0; // leaver: worst score
     let deltas = {};
     if (this.ranked) {
-      deltas = ratingChanges(parts.map((x) => ({ id: x.id, rating: x.rating, games: x.games, startRole: g.state.players[x.id].startRole, score: scores[x.id] })));
+      deltas = ratingChanges(parts.map((x) => ({ id: x.id, rating: x.rating, games: x.games, startRole: g.state.players[x.id].startRole, score: scores[x.id],
+        caught: !!catches[x.id], lateRank: x.left ? 0 : catches[x.id]?.lateRank || 0 })));
     }
     const winner = g.state.winner;
     const results = parts.map((x) => {

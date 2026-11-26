@@ -167,8 +167,9 @@ async function main() {
   check(ends.every((e) => e.ranked && e.results.length === 8), 'roundEnd received by all humans');
   const after = await Promise.all(cs.map((c) => c.me()));
   check(after.every((u, i) => u.games === before[i].games + 1), 'games counter incremented');
-  const deltas = ends[0].results.filter((r) => cs.some((c) => c.id === r.id)).map((r) => r.delta);
-  check(after.every((u, i) => u.rating === before[i].rating + deltas[i]), `ratings updated by ELO (${deltas.join(', ')})`);
+  const deltas = cs.map((c) => ends[0].results.find((r) => r.id === c.id).delta);
+  const actual = after.map((u, i) => u.rating - before[i].rating);
+  check(actual.every((d, i) => d === deltas[i]), `ratings updated by ELO (reported ${deltas.join(', ')}; applied ${actual.join(', ')})`);
   for (const c of cs) c.stopWalking();
 
   // ---------- Scenario B: crash + restart recovery ----------

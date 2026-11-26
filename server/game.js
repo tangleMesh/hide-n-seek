@@ -2,8 +2,7 @@
 // The session layer feeds inputs and calls step(); state is fully serializable for snapshots.
 import {
   DT, ROUND_SECONDS, HEADSTART_SECONDS, FINAL_HUSH_SECONDS, CATCH_DISTANCE, NOISE_BASE, NOISE_INTERVAL,
-  NOISE_MIN, RIPPLE_TTL, HEARTBEAT, ITEMS, ITEM_PICKUP_RADIUS, PAD_RESPAWN, MARKER_TTL, STAMINA,
-} from '../shared/constants.js';
+  NOISE_MIN, RIPPLE_TTL, HEARTBEAT, ITEMS, ITEM_PICKUP_RADIUS, PAD_RESPAWN, MARKER_TTL, STAMINA, LATE_CATCH_COUNT, LATE_CATCH_WINDOW } from '../shared/constants.js';
 import { stepMovement } from '../shared/physics.js';
 
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
@@ -364,9 +363,26 @@ export class Game {
       else if (p.caughtAt === null) out[p.id] = 1;
       else {
         const survived = Math.max(0, p.caughtAt - s.headstart) / s.roundSeconds;
-        out[p.id] = Math.min(0.6, 0.4 * Math.min(1, survived) + 0.1 * p.catches);
+        out[p.id] = Math.min(0.6, 0.45 * Math.min(1, survived) + 0.1 * p.catches);
       }
     }
     return out;
   }
+
+  // For ranked: the starting hiders that were caught, and for the last LATE_CATCH_COUNT of them (if caught within
+  // the last LATE_CATCH_WINDOW seconds) their late rank: 1 = caught last, 2 = second to last, ...
+  catchInfo() {
+    const s = this.state;
+    const end = s.headstart + s.roundSeconds;
+    const caught = Object.values(s.players)
+      .filter((p) => p.startRole === 'hider' && p.caughtAt !== null)
+      .sort((a, b) => b.caughtAt - a.caughtAt);
+    const out = {};
+    caught.forEach((p, i) => {
+      const late = i < LATE_CATCH_COUNT && end - p.caughtAt <= LATE_CATCH_WINDOW;
+      out[p.id] = { caught: true, lateRank: late ? i + 1 : 0 };
+    });
+    return out;
+  }
+
 }
